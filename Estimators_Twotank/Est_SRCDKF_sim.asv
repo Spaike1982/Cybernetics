@@ -1,0 +1,123 @@
+%% Est_SRCDKF_sim.m: Skript for estimering av tilstander med square root 
+%% central difference kalmanfilter
+
+clear; clc;
+
+%% Definerer simulasjonsparametre
+tfin = 50;                          % Sluttid
+dt = 0.1;                           % Tidskritt
+t = 1:dt:tfin;                      % Tidsvektor
+nSim = length(t);                   % Antall tidskritt
+
+%% Parametre for prosessmodell
+
+% Dimensjoner
+nx  = 2;                            % tilstander
+ny  = 2;                            % målinger
+nw  = 2;                            % prosesstøy
+nv  = 2;                            % målestøy
+nu = 1;                             % pådrag
+
+% Initialtilstander
+x0 = 1*ones(nx,1);
+
+% Pådrag
+us = 5;
+u = us + prbs1(nSim,40,80)';
+
+% Støy
+wm = [0;0];                         % Middelverdi prosessforstyrrelse (mu)
+vm = [0;0];                         % Middelverdi målestøy (mu)
+wr = 1;                             % Standaravvik prosessforstyrrelse (rho)
+vr = 1;                             % Standaravvik målestøy (rho)
+
+% Genrerer støy
+w = wr*randn(nx,nSim) + vectorrep(wm,nSim);
+v = vr*randn(ny,nSim) + vectorrep(vm,nSim);
+
+% Kovariansmatriser
+Rw=wr^2*eye(nx);                    % Prosesstøy kovariansmatrise
+Rv=vr^2*eye(ny);                    % Målestøy kovariansmatrise
+
+%% Initiering av simuleringsløkke
+% Initialverdier
+x = x0;
+% Plass for lagring
+ctime = zeros(nSim,1);
+X = zeros(nx,nSim);
+Y = zeros(ny,nSim);
+U = zeros(nu,nSim);
+
+%% Simuleringsløkke
+for k = 1:nSim
+     % Måleligning
+    y = g(x,u(:,k),v(:,k));
+    
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    Y(:,k) = y';                    % y(k)
+    U(:,k) = u(:,k)';               % u(k)
+    
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));  % Euler diskretisering
+end
+
+%% Initiering av estimeringsløkke
+% Initialverdier
+Pb = 1*eye(nx);                    % Tiltandskovarians Pb = E((xb-x)'(xb-x))
+Ph = Pb;
+xb = x0 + 1;                        % Apriori estimat
+xh = xb;                            % Aposteriori estimat
+Sw = chol(Rw)';                     % Cholesky faktor (Sw*Sw' = Rw)
+Sv = chol(Rv)';                     % Cholesky faktor (Sv*Sv' = Rv)
+Sx = chol(Ph)';                     % Cholesky faktor (Sx*Sx' = Ph)
+% Central difference parametere
+h=sqrt(3);                          % Step størrelse
+% Beregning av vekter
+hh = h^2;
+W1 = [(hh-nx-nw)/hh,1/(2*hh);1/(2*h),sqrt(hh-1)/(2*hh)];    % Sett 1
+W2 = W1;
+W2(1,1) = (hh-nx-nv)/hh;                                    % Sett 2
+% Plass for lagring
+Xb = X;
+Xh = X;
+Yb = Y;
+Kk = zeros(nx,ny*nSim);
+K = zeros(nx,ny);
+Pbar = zeros(nx,nx*nSim);
+Phat = Pbar;
+
+%% Estimeringsløkke
+for k = 1:nSim
+    
+    % Måleligning
+    y = g(x,u(:,k),v(:,k));
+
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    Y(:,k) = y';                    % y(k)
+    U(:,k) = u(:,k)';               % u(k)
+    Xb(:,k) = xb';                  % xb(k|k-1)
+    Pbar(:,nx*k-nx+1:nx*k) = Pb;    % Pb(k|k-1)
+
+    % Kalmanfilter
+    tic;
+    [xh,xb,yb,K,Sx] = SRCDKF(xh,u(:,k),y,wm,vm,Sx,Sw,Sv,W1,W2,h,dt);
+    ctime(k) = toc;
+    
+    % Tilstands kovarians
+    Ph = Sx*Sx';
+
+    % Lagring
+    Xh(:,k) = xh';                  % xh(k|k)
+    Yb(:,k) = yb';                  % yb(k|k)
+    Kk(:,ny*k-ny+1:ny*k) = K;
+    Phat(:,nx*k-nx+1:nx*k) = Ph;    % Ph(k|k)
+
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));    % Euler diskretisering
+
+end
+
+%% Plotting
+plot(t,X,t,Xh);

@@ -1,0 +1,109 @@
+%% Est_PF_sim.m: Skript for estimering av tilstander med partikkel filter
+
+clear; clc;
+
+%% Definerer simulasjonsparametre
+tfin = 50;                          % Sluttid
+dt = 0.1;                           % Tidskritt
+t = 1:dt:tfin;                      % Tidsvektor
+nSim = length(t);                   % Antall tidskritt
+
+%% Parametre for prosessmodell
+
+% Dimensjoner
+nx  = 2;                            % tilstander
+ny  = 2;                            % målinger
+nw  = 2;                            % prosesstøy
+nv  = 2;                            % målestøy
+nu = 1;                             % pådrag
+
+% Initialtilstander
+x0 = 1*ones(nx,1);
+
+% Pådrag
+us = 5;
+u = us + prbs1(nSim,40,80)';
+
+% Støy
+wm = [0;0];                         % Middelverdi prosessforstyrrelse (mu)
+vm = [0;0];                         % Middelverdi målestøy (mu)
+wr = 1;                             % Standaravvik prosessforstyrrelse (rho)
+vr = 1;                             % Standaravvik målestøy (rho)
+
+% Genrerer støy
+w = wr*randn(nx,nSim) + vectorrep(wm,nSim);
+v = vr*randn(ny,nSim) + vectorrep(vm,nSim);
+
+% Kovariansmatriser
+Rw=wr^2*eye(nx);                    % Prosesstøy kovariansmatrise
+Rv=vr^2*eye(ny);                    % Målestøy kovariansmatrise
+
+%% Initiering av simuleringsløkke
+% Initialverdier
+x = x0;
+% Plass for lagring
+ctime = zeros(nSim,1);
+X = zeros(nx,nSim);
+Y = zeros(ny,nSim);
+U = zeros(nu,nSim);
+
+%% Simuleringsløkke
+for k = 1:nSim
+     % Måleligning
+    y = g(x,u(:,k),v(:,k));
+    
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    Y(:,k) = y';                    % y(k)
+    U(:,k) = u(:,k)';               % u(k)
+    
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));  % Euler diskretisering
+end
+
+%% Initiering av estimeringsløkke
+% Initialverdier
+Pb = 1*eye(nx);                     % Tiltandskovarians Pb = E((xb-x)'(xb-x))
+Ph = Pb;
+xh = x0 + 1;                        % Aposteriori estimat
+Sw = chol(Rw)';                     % Cholesky faktor (Sw*Sw' = Rw)
+Sv = chol(Rv)';                     % Cholesky faktor (Sv*Sv' = Rv)
+Sx = chol(Ph)';                     % Cholesky faktor (Sx*Sx' = Ph)
+% danner initiell partikler
+N = 10;                             % Antall partikler         
+Xp = randn(nx,N);
+xpart = Sx*Xp + xh*ones(1,N);
+% Plass for lagring
+Xb = X;
+Xh = X;
+Yb = Y;
+Kk = zeros(nx,ny*nSim);
+K = zeros(nx,ny);
+Phat = zeros(nx,nx*nSim);
+
+%% Estimeringsløkke
+for k = 1:nSim
+ 
+    % Henter målinger
+    y = Y(:,k);
+    % 
+    yb = g(xh,u(:,k),vm);
+    
+    % Kalmanfilter
+    tic;
+    [xh,Ph,xpart] = PF(xpart,wm,vm,Sw,Sv,u(:,k),y,N,dt);
+    ctime(k) = toc;
+    
+    % Lagring
+    Xh(:,k) = xh';                  % xh(k|k)
+    Kk(:,ny*k-ny+1:ny*k) = K;
+    Phat(:,nx*k-nx+1:nx*k) = Ph;    % Ph(k|k)
+end
+
+%% Plotting
+figure(1)
+plot(t,X,t,Xh);
+legend('sim1','sim2','est1','est2')
+figure(2)
+plot(t,Y,t,Yb)
+legend('sim1','sim2','est1','est2')

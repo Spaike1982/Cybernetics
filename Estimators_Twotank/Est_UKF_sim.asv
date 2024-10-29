@@ -1,0 +1,120 @@
+%% Est_UKF_sim.m: Skript for estimering av tilstander med unscented
+%% kalmanfilter
+
+clear; clc;
+
+%% Definerer simulasjonsparametre
+tfin = 20;                          % Sluttid
+dt = 0.1;                           % Tidskritt
+t = 1:dt:tfin;                      % Tidsvektor
+nSim = length(t);                   % Antall tidskritt
+
+%% Parametre for prosessmodell
+
+% Dimensjoner
+nx  = 2;                            % tilstander
+ny  = 2;                            % målinger
+nw  = 2;                            % prosesstøy
+nv  = 2;                            % målestøy
+nu = 1;                             % pådrag
+
+% Initialtilstander
+x0 = 1*ones(nx,1);
+
+% Pådrag
+% u = 5 + prbs1(nSim,40,80)';
+u = 5*ones(nSim,1)';
+
+% Støy
+wm = [0;0];                         % Middelverdi prosessforstyrrelse (mu)
+vm = [0;0];                         % Middelverdi målestøy (mu)
+wr = 2;                             % Standaravvik prosessforstyrrelse (rho)
+vr = 1;                             % Standaravvik målestøy (rho)
+
+% Genrerer støy
+w = wr*randn(nx,nSim) + vectorrep(wm,nSim);
+v = vr*randn(ny,nSim) + vectorrep(vm,nSim);
+
+% Kovariansmatriser
+Rw=wr^2*eye(nx);                    % Prosesstøy kovariansmatrise
+Rv=vr^2*eye(ny);                    % Målestøy kovariansmatrise
+
+%% Initiering av simuleringsløkke
+x = x0;
+ctime = zeros(nSim,1);
+Xh = zeros(nx,nSim);
+Xb = Xh;
+Yb = zeros(ny,nSim);
+X = Xh;
+U = zeros(nu,nSim);
+Y = Yb;
+Kk = zeros(nx,ny*nSim);
+K = zeros(nx,ny);
+Pbar = zeros(nx,nx*nSim);
+Phat = Pbar;
+
+%% Simuleringsløkke
+for k = 1:nSim
+     % Måleligning
+    y = g(x,u(:,k),v(:,k));
+    
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    Y(:,k) = y';                    % y(k)
+    U(:,k) = u(:,k)';               % u(k)
+    
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));    % Euler diskretisering
+end
+
+%% Initiering av estimeringsløkke
+% Initialverdier
+Pb = 10*eye(nx);                    % Tiltandskovarians Pb = E((xb-x)'(xb-x))
+Ph = Pb;
+xb = x0 + 1;                        % Apriori estimat
+xh = xb;                            % Aposteriori estimat
+Sw = chol(Rw)';                     % Cholesky faktor (Sw*Sw' = Rw)
+Sv = chol(Rv)';                     % Cholesky faktor (Sv*Sv' = Rv)
+% Unscented transformasjon parametere
+L = nx + nw + nv;                   % Antall sigma punkter
+kappa = 0;                          % UKF sekundær skalerings parameter
+alpha = 1e-3;                       % UKF skalerings faktor
+beta = 2;                           % UKF kovarians korreksjons faktor,                                    % beta = 2 ): Antar normalforelt støy
+% Beregning av vekter
+lambda = alpha^2*(L+kappa)-L;
+gamma = sqrt(L+lambda);
+W = [lambda 0.5 0]/(L+lambda);      % Sigma punkt vekter
+W(3) = W(1)+1-alpha^2+beta;
+% Plass for lagring
+
+%% Estimeringsløkke
+for k = 1:nSim
+
+    % Måleligning
+    y = g(x,u(:,k),v(:,k));
+
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    Y(:,k) = y';                    % y(k)
+    U(:,k) = u(:,k)';               % u(k)
+    Xb(:,k) = xb';                  % xb(k|k-1)
+    Pbar(:,nx*k-nx+1:nx*k) = Pb;    % Pb(k|k-1)
+
+    % Kalmanfilter
+    tic;
+    [xh,xb,yb,K,Pb,Ph] = UKF(xh,u(:,k),y,wm,vm,Ph,Sw,Sv,W,gamma,dt);
+    ctime(k) = toc;
+
+    % Lagring
+    Xh(:,k) = xh';                  % xh(k|k)
+    Yb(:,k) = yb';                  % yb(k|k)
+    Kk(:,ny*k-ny+1:ny*k) = K;
+    Phat(:,nx*k-nx+1:nx*k) = Ph;    % Ph(k|k)
+
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));    % Euler diskretisering
+
+end
+
+%% Plotting
+plot(t,X,t,Xh);

@@ -1,0 +1,29 @@
+function retval = hess(fname,x,h)
+% usage: retval = hess(fname,x,h)
+% description: An unsophisticated Hessian calculation using
+% forward differences. fname(x) is assumed scalar and x is
+% assumed vector.
+
+% local variables
+% ii,jj: index variable
+% nx: length of x
+
+nx = length(x);
+retval = zeros(nx,nx);
+fx = zeros(nx,1);
+h2 = h*h;
+fnamex = feval(fname,x);
+for jj = 1:nx
+  dx = zeros(nx,1);
+  dx(jj) = h;
+  fx(:,jj) = feval(fname,x+dx);
+end
+for jj = 1:nx
+  for ii = 1:jj
+    dx = zeros(nx,1);
+    dx(ii) = h;
+    dx(jj) = dx(jj)+h;
+    retval(ii,jj) = (feval(fname,x+dx)-fx(ii)-fx(jj)+fnamex)/h2
+  end
+end;
+retval = retval + triu(retval,1)';

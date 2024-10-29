@@ -1,0 +1,3 @@
+function y = stepfunksjon(B,x)
+y = B(1) + B(2)./(1+exp(-(x-B(4))/B(3))) +... 
+    (B(5)-B(2))./(1+exp(-(x-B(7))/B(6)));

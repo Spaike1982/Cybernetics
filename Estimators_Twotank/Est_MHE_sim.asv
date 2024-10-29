@@ -1,0 +1,189 @@
+%% Est_MHE_sim.m: Skript for estimering av tilstander med moving horizon
+%% estimator
+
+clear; clc;
+
+%% Definerer simulasjonsparametre
+tfin = 50;                          % Sluttid
+dt = 0.1;                           % Tidskritt
+t = 1:dt:tfin;                      % Tidsvektor
+nSim = length(t);                   % Antall tidskritt
+
+%% Parametre for prosessmodell
+
+% Dimensjoner
+nx  = 2;                            % tilstander
+ny  = 2;                            % målinger
+nw  = 2;                            % prosesstøy
+nv  = 2;                            % målestøy
+nu = 1;                             % pådrag
+
+% Initialtilstander
+x0 = 1*ones(nx,1);
+
+% Pådrag
+us = 5;
+u = [zeros(10,1)',us + prbs1(nSim,40,80)'];
+
+% Støy
+wm = [0;0];                         % Middelverdi prosessforstyrrelse (mu)
+vm = [0;0];                         % Middelverdi målestøy (mu)
+wr = 1;                             % Standaravvik prosessforstyrrelse (rho)
+vr = 1;                             % Standaravvik målestøy (rho)
+
+% Genrerer støy
+w = wr*randn(nx,nSim) + vectorrep(wm,nSim);
+v = vr*randn(ny,nSim) + vectorrep(vm,nSim);
+
+% Kovariansmatriser
+Rw=wr^2*eye(nx);                    % Prosesstøy kovariansmatrise
+Rv=vr^2*eye(ny);                    % Målestøy kovariansmatrise
+
+%% Lineærisering av ulineær prosessmodell
+
+% Arbeidspunkter
+vs = vm(:,end);                     % Målestøy
+ws = wm(:,end);
+[xs,ys] = stationaryTT(us,vs);      % Tilstand og måling
+
+% Lineærisering
+[A,B,C,D,E,F] = linearizeTT(xs, ws, vs, us, dt ,'A','B','C','D','E','F');
+
+%% Initiering av simuleringsløkke
+% Initialveridcer
+x = x0;
+xl = x0;
+% Lagringsplass
+ctime = zeros(nSim,1);
+X = zeros(nx,nSim);
+Xl = X;
+Y = zeros(ny,nSim);
+Yl = Y;
+U = zeros(nu,nSim);
+
+%% Simuleringsløkke
+for k = 1:nSim      
+    % Måleligning
+    y = g(x,u(:,k),v(:,k));
+    
+    % Lineær måleleignig
+    yl = D*(xl-xs) + E*(u(:,k)-us) + F*v(:,k) + ys; %vs = 0
+    
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    XN(nx*k-nx+1:nx*k,1) = x;
+    Xl(:,k) = xl';
+    Y(:,k) = y';                    % y(k)
+    YN(ny*k-nx+1:ny*k,1) = y;
+    Yl(:,k) = yl';
+    U(:,k) = u(:,k)';               % u(k)
+    UN(nu*k-nu+1:nu*k,1) = u(:,k);
+    
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));    % Euler diskretisering
+    
+    % Lineær tilstandsligning
+    xl = A*(xl-xs) + B*(u(:,k)-us) + C*w(:,k) + xs; % ws = 0
+end
+
+%% Initiering av estimeringsløkke
+% Initialverdier
+Pb = 1*eye(nx);                    % Tiltandskovarians Pb = E((xb-x)'(xb-x))
+Ph = Pb;
+xb = x0 + 1;
+% Horisont lengde
+N = 10;
+% Initierer horisonter med N gamle data
+yN = YN(1:N*ny,1);
+uN = UN(1:N*nu,1);
+xN = XN(1:N*nx,1);
+vN = zeros(N*nv,1);         % vm = 0
+wN = zeros((N-1)*nw,1);     % wm = 0
+% Trekker fra arbeispunkt ved bruk av avviksmodell
+dxN = xN - matrixrep(xs,N,1,1);
+dyN = yN - matrixrep(ys,N,1,1);
+duN = uN - matrixrep(us,N,1,1);
+dvN = vN - matrixrep(vs,N,1,1);
+dwN = wN - matrixrep(ws,N-1,1,1);
+% Initierer gamle horisonter
+dzN = vectorrep([dxN;dvN;dwN],N);
+% Beskrankninger
+zL = [0;0;0;0;0;0];
+zH = [50;inf;inf;inf;inf;inf];
+% Trekke fra arbeidspunkt for avviksmodell
+dzL = zL - [xs;0;0;0;0];
+dzH = zH - [xs;0;0;0;0];
+dzLow = [matrixrep(dzL(1:nx),N,1,1);
+    matrixrep(dzL(nx+1:nx+nv),N,1,1);
+    matrixrep(dzL(nx+nv+1:nx+nv+nw),N-1,1,1)];
+dzHigh = [matrixrep(dzH(1:nx),N,1,1);
+    matrixrep(dzH(nx+1:nx+nv),N,1,1);
+    matrixrep(dzH(nx+nv+1:nx+nv+nw),N-1,1,1)];
+% Vekter for kriteriet
+Qx1 = inv(Ph); % NB burde oppdateres for hvert tidsskritt
+Qv = inv(Rv);
+Qw = inv(Rw);
+% Lagringsplass
+Xb = X;
+Xh = X;
+Yb = Y;
+Pbar = zeros(nx,nx*nSim);
+Phat = Pbar;
+
+
+%% Estimeringsløkke
+for k = N:nSim
+    k
+   % Henter målinger
+    y = Y(:,k);
+    
+    % Lagring
+    Xb(:,k) = xb';                  % xb(k|k-1)
+    Pbar(:,nx*k-nx+1:nx*k) = Pb;    % Pb(k|k-1)
+        
+    % Aviksvariable
+    dy = y - ys;
+    du = u(:,k) - us;
+
+    % Oppdaterer glidende horisont
+    dyN = [dy;dyN(1:end-nx)];
+    duN = [du;duN(1:end-nu)];
+
+    % Initialtilstand for horisont x1(k-N+1|N-1)=xbar(k-N|N-1)
+    dx1 = dzN(N*nx-nx+1:N*nx,N);
+    % Initial kovarians for horisont Qx1(k-N+1|N-1)=Qx1(k-N+1|N-1)/2
+    Qx1 = Qx1/2;
+
+    tic;
+    dz = QPSE(A, B, C, D, E, F, Qw, Qv, Qx1, dx1, dyN, duN, N, dzLow, dzHigh);
+    ctime(k) = toc;
+
+    % Lagrer N gamle horisonter
+    % x1 og Qx1
+    dzN = [dz,dzN(:,1:N-1)];
+
+    % Finner estimater
+    dxb = dz(1:nx);                
+    dyb = D*dxb+E*du+F*vm;
+    dxh = A*dxb+B*du+C*wm;
+    
+    % Kovarians
+    Ph = inv(Qx1);
+    
+    % Avviksvariable
+    xh = dxh + xs;
+    xb = dxb + xs;
+    yb = dyb + ys;
+
+    % Lagring
+    Xh(:,k) = xh';                  % xh(k|k)
+    Yb(:,k) = yb';                  % yb(k|k)
+    Phat(:,nx*k-nx+1:nx*k) = Ph;    % Ph(k|k)
+end
+
+%% Plotting
+plot(t,X,t,Xb);
+legend('sim1','sim2','est1','est2')
+figure(2)
+plot(t,Y,t,Yb)
+legend('sim1','sim2','est1','est2')

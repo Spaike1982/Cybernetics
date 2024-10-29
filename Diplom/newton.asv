@@ -1,0 +1,25 @@
+function B = newton(fun,B0,y,tol,maxit)
+
+% Sjekker innganger
+if nargin < 4
+    tol = sqrt(eps);
+elseif nargin < 5
+    maxit=100;
+end
+
+% Initiering av loop
+itc = 1;
+B = B0;
+r = 1;
+
+while norm(r) > tol
+    J = jacobi_central(fun,1,B);
+    H = (J' + J)/2;
+    ef = feval(fun,B) - y;
+    r = -H\J*ef;
+    if itc > maxit
+        break;
+    end
+    B = B + r;
+    itc=itc+1;
+end

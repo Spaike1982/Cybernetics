@@ -1,0 +1,24 @@
+%% Glidende horisont filtrering
+% Også kallt "Exponentially Weighted Moving Average Filter"
+
+clear; clc;
+format short g
+
+lesfil('C:\Documents and Settings\Administrator\My Documents\Skole\2KIT - Vår 2007\Hovedoppgave\Matlab\Diplom\sep1p.mat');
+y = data(1,25:107)';
+n = length(y)-1;
+x = (0:n)';
+
+% 0<=p<=1, filtreringsgrad
+p = 0.8;
+% Lager opp plass for filtrerte data
+yy = zeros(1,n);
+% Initialisering av filter
+yy(1) = y(1);
+% Rekursiv algoritme
+for k = 2:length(x);
+yy(k) = p*yy(k-1) + (1-p)*y(k);
+end
+
+
+plot(x,y,'.',x,yy,'r-')

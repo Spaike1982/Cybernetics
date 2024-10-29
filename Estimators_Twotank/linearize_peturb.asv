@@ -1,0 +1,185 @@
+function varargout = linearize_peturb(x, w, v, u ,varargin)
+%
+% linearize_peturb.m: Funksjon som danner en lineær tilstandsrommodell:
+%
+%           x(k+1) = A*x(k) + B*u(k) + G*w(k)
+%             y(k) = C*x(k) + D*u(k) + H*v(k)
+%
+% fra en ulineær modell:
+%
+%           dx/dt = f(x(k),u(k),w(k))
+%            y(k) = g(x(k),u(k),v(k))
+%
+% Basert på peturbasjon rundt et arbeidspunkt (xs,us)
+%
+% Funksjonsrutine
+%
+%   varargout = varargout = linearize(x, w, v, u ,varargin)
+%
+%   eksempel på brukemåte:
+%
+%   [A,B,C] = linearize(x, w, v, u ,'A','B','C')
+%
+% Andre funksjoner som kreves internt
+%
+%   f.m - Tilstandsfunksjon
+%   g.m - Målelining
+%
+% Innganger:
+%
+%   x - Tilstandsvektor
+%   w - Prosessforstyrrelse vektor
+%   v - Målestøy vektor
+%   u - Pådrag
+%   varargin - Modellmatriser som skal finnes. (eks 'A','B','C')
+%
+% Utganger:
+%
+%   varargout - Modellmatrisene som spesifisert i varargin
+%
+% Merk:
+%
+%   De genrelle nummeriske peturbasjonsrutinene for jacobimatrisene A, B,
+% .. kan og brude erstattes av analytisk derivasjonskode.
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] Wan, E. A. and van der Merwe, R. 2001. Kalman Filtering and Neural
+%       Networks (Chapter 7. The Unscented Kalman Filter). John Wiley &
+%       Sons.
+%   [1] BHARATH REDDY ENDURTHI, "LINEARIZATION AND HEALTH ESTIMATION 
+%       OF ATURBOFAN ENGINE", Masters Thesis, 
+
+% Dimensjoner
+nx = length(x);
+nu = length(u);
+ny = length(g(x,u,v));
+nw = length(w);
+nv = length(v);
+
+% Sjekk antall innganger
+nop = length(varargin);
+nia = nargin-1+nop;
+if nia < 4 + nop
+    error('[ linearize ] Ikke nok inngangsargumenter, se help linearize! ');
+end
+
+epsilon = 1e-9; % Peturbasjon step størrelse
+
+for k=1:nop
+
+    switch varargin{k}
+
+        case 'A'
+            %%%========================================================
+            %%%             Beregn A = df/dx
+            %%%========================================================
+            A  = zeros(nx, nx);
+            %%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+            f1 = f(x,u,w);
+            for j=1:nx
+                xtemp = x;
+                xtemp(j) = xtemp(j) + epsilon;
+                f2 = f(xtemp,u,w);
+                A(:,j) = (f2-f1)/epsilon;
+            end
+            %%%--------------------------------------------------------
+            varargout{k} = A;
+
+
+        case 'B'
+            %%%========================================================
+            %%%             Beregn B = df/du
+            %%%========================================================
+            B = zeros(nx, nu);
+            %%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+            f1 = f(x,u,w);
+            for j=1:nu
+                utemp = u;
+                utemp(j) = utemp(j) + epsilon;
+                f2 = f(x,utemp,w);
+                B(:,j) = (f2-f1)/epsilon;
+            end
+            %%%--------------------------------------------------------
+            varargout{k} = B;
+
+
+        case 'C'
+            %%%========================================================
+            %%%             Beregn C = dg/dx
+            %%%========================================================
+            C = zeros(ny, nx);
+            %%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+            f3 = g(x,u,v);
+            for j=1:nx
+                xtemp = x;
+                xtemp(j) = xtemp(j) + epsilon;
+                f4 = g(xtemp,u,v);
+                C(:,j) = (f4-f3)/epsilon;
+            end
+            %%%--------------------------------------------------------
+            varargout{k} = C;
+
+
+        case 'D'
+            %%%========================================================
+            %%%             Beregn D = dg/du
+            %%%========================================================
+            D = zeros(ny, nu);
+            %%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+            f3 = g(x,u,v);
+            for j=1:nu
+                utemp = u;
+                utemp(j) = utemp(j) + epsilon;
+                f4 = g(x,utemp,v);
+                D(:,j) = (f4-f3)/epsilon;
+            end
+            %%%--------------------------------------------------------
+            varargout{k} = D;
+
+
+        case 'G'
+            %%%========================================================
+            %%%             Beregn G = df/dw
+            %%%========================================================
+            G = zeros(nx, nw);
+            %%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+            f1 = f(x,u,w);
+            for j=1:nw
+                wtemp = w;
+                wtemp(j) = wtemp(j) + epsilon;
+                f5 = f(x,u,wtemp);
+                G(:,j) = (f5-f1)/epsilon;
+            end
+            %%%--------------------------------------------------------
+            varargout{k} = G;
+
+
+        case 'H'
+            %%%========================================================
+            %%%             Beregn H = dg/dv
+            %%%========================================================
+            H = zeros(ny, nv);
+            %%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+            f3 = g(x,u,v);
+            for j=1:nv
+                vtemp = v;
+                vtemp(j) = vtemp(j) + epsilon;
+                f6 = g(x,u,vtemp);
+                H(:,j) = (f6-f3)/epsilon;
+            end
+            %%%--------------------------------------------------------
+            varargout{k} = H;
+
+        otherwise
+            error('[ linearize ] Ugyldig fuksjonsargument, se help linearize_peturb');
+
+    end
+
+end
+
+%------------------------------------------------------------------------
+%--------------

@@ -1,0 +1,30 @@
+%% Simulering av profil
+clear; clc;
+format short g
+
+% Laster inn data
+lesfil('C:\Documents and Settings\Administrator\My Documents\Skole\2KIT - Vår 2007\Hovedoppgave\Matlab\Diplom\sep1p.mat');
+y = data(7570:end,1:107)';
+n = size(y,1);
+x = (0:n-1)';
+
+B = [10;700;1100;15;20;50;80];
+% Simulering
+for k = 1:100
+y = piecerampefunksjon(B) + 50*randn(n,1);
+
+% Nummerisk minste kvadraters metode
+Bb = [5;800;1000;20;25;60;80];   % For simulasjon
+% Initielle parametere
+n=size(y,2);
+t = 1:n;
+for k = 1:n
+    k
+    %Bb = lsqcurvefit('expfunksjon',Bb,x,y(:,k));
+    Bb = gaussnewton('secondorderfunction',Bb,y(:,k),0.1);
+    yhat = secondorderfunction(Bb);
+    B(:,k) = Bb;
+    figure(1)
+    plot(x,y(:,k),'*',x,yhat)
+end
+

@@ -1,0 +1,3 @@
+function y = tanfunksjon(B,x)
+y = B(1) + (B(2)-B(1))/2 + (B(2)-B(1))*atan(B(3)*(x-B(4)))/pi +... 
+    (B(5)-B(2))*atan(B(6)*(x-B(7)))/pi;

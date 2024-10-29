@@ -1,0 +1,127 @@
+%% Est_KF_sim.m: Skript for estimering av tilstander med kalmanfilter
+
+clear; clc;
+
+%% Definerer simulasjonsparametre
+tfin = 20;                          % Sluttid
+dt = 0.1;                           % Tidskritt
+t = 1:dt:tfin;                      % Tidsvektor
+nSim = length(t);                   % Antall tidskritt
+
+%% Parametre for prosessmodell
+
+% Dimensjoner
+nx  = 2;                            % tilstander
+ny  = 2;                            % målinger
+nw  = 2;                            % prosesstøy
+nv  = 2;                            % målestøy
+nu = 1;                             % pådrag
+
+% Initialtilstander
+x0 = 1*ones(nx,1);
+
+% Pådrag
+us = 5;
+u = us + prbs1(nSim,40,80)';
+
+% Støy
+wm = [0;0];                         % Middelverdi prosessforstyrrelse (mu)
+vm = [0;0];                         % Middelverdi målestøy (mu)
+wr = 2;                             % Standaravvik prosessforstyrrelse (rho)
+vr = 1;                             % Standaravvik målestøy (rho)
+
+% Genrerer støy
+w = wr*randn(nx,nSim) + vectorrep(wm,nSim);
+v = vr*randn(ny,nSim) + vectorrep(vm,nSim);
+
+% Kovariansmatriser
+Rw=wr^2*eye(nx);                    % Prosesstøy kovariansmatrise
+Rv=vr^2*eye(ny);                    % Målestøy kovariansmatrise
+
+%% Lineærisering av ulineær prosessmodell
+
+% Arbeidspunkter
+vs = vm(:,end);                    % Målestøy
+ws = wm(:,end);
+[xs,ys] = stationaryTT(us,vs);     % Tilstand og måling
+
+% Lineærisering
+[A,B,C,D,E,F] = linearizeTT(xs, ws, vs, us, dt ,'A','B','C','D','E','F');
+
+
+%% Initiering av kalmanfilter
+% Kalmanfilterforsterkning og tilstandskovarians
+[K,Pb,Ph] = dlqe(A,C,D,Rw,Rv);
+xb = x0 + 1;
+
+%% Initiering av simuleringsløkke
+x = x0;
+ctime = zeros(nSim,1);
+Xh = zeros(nx,nSim);
+Xb = Xh;
+Yb = zeros(ny,nSim);
+X = Xh;
+Xl = Xh;
+U = zeros(nu,nSim);
+Y = Yb;
+Yl = Yh;
+Kk = zeros(nx,ny*nSim);
+K = zeros(nx,ny);
+Pbar = zeros(nx,nx*nSim);
+Phat = Pbar;
+
+%% Simuleringsløkke
+for k = 1:nSim        
+    % Måleligning
+    y = g(x,u(:,k),v(:,k));
+    
+    % Lineær måleleignig
+    yl = D*(xl-xs) + E*(u(:,k)-us) + F*v(:,k) + ys;
+    
+    % Lagring
+    X(:,k) = x';                    % x(k)
+    Xl(:,k) = xl';
+    Y(:,k) = y';                    % y(k)
+    Y(:,k) = yl;
+    U(:,k) = u(:,k)';               % u(k)
+    
+    % Tilstandsligning
+    x = x + dt*f(x,u(:,k),w(:,k));    % Euler diskretisering
+    
+    % Lineær tilstandsligning
+    xl = A*(xl-xs) + B*(u(:,k)-us) + C*w(:,k) + xs;
+end
+
+%% Simulering og estimeringsløkke
+for k = 1:nSim
+    % Henter målinger
+    y = Y(:,k);
+    
+    % Lagring
+    Xb(:,k) = xb';                  % xb(k|k-1)
+    Pbar(:,nx*k-nx+1:nx*k) = Pb;    % Pb(k|k-1)
+        
+    % Aviksvariable
+    dxb = xb - xs;
+    dy = y - ys;
+    du = u(:,k) - us;
+
+    % Kalmanfilter
+    tic;
+    [dxh,dxb,dyb] = KF(A,B,C,D,E,F,dxb,du,dy,wm,vm,K);
+    ctime(k) = toc;
+
+    % Avviksvariable
+    xh = dxh + xs;
+    xb = dxb + xs;
+    yb = dyb + ys;
+    
+    % Lagring
+    Xh(:,k) = xh';                  % xh(k|k)
+    Yb(:,k) = yb';                  % yb(k|k)
+    Kk(:,ny*k-ny+1:ny*k) = K;
+    Phat(:,nx*k-nx+1:nx*k) = Ph;    % Ph(k|k)
+end 
+
+%% Plotting
+plot(t,X,t,Xh);

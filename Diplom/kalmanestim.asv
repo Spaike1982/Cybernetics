@@ -1,0 +1,8 @@
+function [Bh,Bb] = kalmanestim(Bb,rho,K)
+
+
+% Aposteriori estimat
+Bh = Bb + K*(rho-rhobar);
+% Apriori Prediksjon
+Bb = Bh;
+

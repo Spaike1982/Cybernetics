@@ -1,0 +1,60 @@
+%% Plotting av rådata
+lesfil('C:\Documents and Settings\Administrator\My Documents\Skole\2KIT - Vår 2007\Hovedoppgave\Matlab\Diplom\sep1p.mat');
+y = data(:,1:107)';
+[n,m] = size(y);
+nj = 0:n);
+nk = 
+
+%% ------------- Tetthet mot målepunkt ------------
+sample = 107;
+figure(1)
+plot(n,y(sample,:),'b.')
+title(['Reell tetthetsprofil i separator ved tidssample, k = ',num2str(sample)])
+legend('Støybefengte målinger')
+xlabel('Tetthet (rho)'), ylabel('Nivå (målepunkt)')
+
+%% ------------- Tetthet mot tidssample ---------------
+maalepunkt = 50;
+figure(2)
+plot(Nyk,Yreal(:,maalepunkt),'b.')
+title(['Reell tetthetsprofil i separator ved målepunkt ',num2str(maalepunkt)])
+legend('Støybefengte data')
+ylabel('Tetthet (rho)'), xlabel('Tidssample (50s)')
+
+% Virkelig mot simulert
+figure(6)
+plot(Nyk,Yreal(:,maalepunkt),'b.',Nyk,Yw(:,maalepunkt),'r.')
+title(['Simulert mot virkelig tetthetsprofil ved målepunkt ',num2str(maalepunkt)])
+legend('virkelige data','Simulerte data')
+ylabel('Tetthet (rho)'), xlabel('Tidssample (50s)')
+
+%% ----------- Fancy 3d plot av all data for full oversikt ---------
+% virkelige data
+figure(7)
+Nkk = 1:100:Nk;
+surf(nj,Nkk,Yreal(1:100:end,:));
+title('Virkelig tetthesprofil')
+xlabel('Målepunkt'), ylabel('Sampler, (30sek)'), zlabel('Tetthet');
+
+% Simulerte data
+figure(8)
+surf(nj,Nkk,Yw(1:100:end,:));
+title('Simulert tetthesprofil')
+xlabel('Målepunkt'), ylabel('Sampler, (30sek)'), zlabel('Tetthet');
+
+figure(9)
+surf(nj,Nkk,Yw(1:100:end,:));
+hold on
+figure(9)
+mesh(nj,Nkk,Yreal(1:100:end,:));
+hold off
+title('Simulert mot virkelig tetthesprofil')
+xlabel('Målepunkt'), ylabel('Sampler, (30sek)'), zlabel('Tetthet');
+
+figure(10)
+surf(nj,Nkk,Yreal(1:100:end,:));
+hold on
+figure(10)
+mesh(nj,Nkk,Yp(1:100:end,:));
+title('Simulert mot virkelig tetthetsprofil')
+xlabel('Målepunkt'), ylabel('Sampler, (30sek)'), zlabel('Tetthet');

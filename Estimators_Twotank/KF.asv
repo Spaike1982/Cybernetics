@@ -1,0 +1,50 @@
+function [xh,xb,yb] = KF(A,B,C,D,E,F,xb,u,y,wm,vm,K)
+
+% KF.m: Kalman Filter, funksjon som beregner estimater 
+% av ikke målbare tilstander.
+% 
+% Basert på en LTI modell av formen
+%   x(k+1) = Ax(k) + Bu(k) + Cw(k)
+%   y(k) = Dx(k) + Eu(k) + Fv(k)
+% 
+% Funksjonsrutine:
+%
+%   [xh,xb,yb] = KF(A,B,C,D,G,H,xb,u,y,wm,vm,K)
+%
+% Innganger:
+%
+%   A,B,C,D,G,H - Modellmatriser i en lineær tilstansrommodell
+%   xb - Initiellt aprioriestimat av tilstandene
+%   u - Pådrag
+%   y - Målinger
+%   wm - Middelverdi av prosessforstyrrelse
+%   vm - Midderlverdi av målestøy
+%   K - Kalmanfilterforsterkning
+%
+% Utganger:
+% 
+%   xh - aposteriori estimat av tilstandene
+%   xb - apriori estimat av tilstandene
+%   yb - aprioris estimat av målingene
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] David Di Ruscio, "Tilstandsestimering og kalmanfilter", 
+%       Telemark university college, March 11, 2003.
+
+%% Kalmanfilter algoritme:
+
+% Måleoppdatering
+yb = D*xb + E*u + F*vm;
+
+y-yb
+
+% Aposteriori tilstandsestimat
+xh = xb + K*(y - yb);
+
+% Oppdatering av apriori estimat
+xb = A*xh + B*u + C*wm;
+

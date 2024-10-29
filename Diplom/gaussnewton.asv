@@ -1,0 +1,68 @@
+function B = gaussnewton(fun,B0,y,tol,maxit)
+
+% gaussnewton: Finner en parametervektor B som minimerer avviket mellom
+% data og 
+%
+% Basert på en LTI modell av formen:
+%   x(k+1) = Ax(k) + Bu(k) + Cw(k)
+%   y(k) = Dx(k) + Eu(k) + Fv(k)
+%
+% Fuksjonsrutine:
+%
+%   [xh,xb,yb,K,Pb,Ph] = EKF(xb,u,y,wm,vm,Pb,Rw,Rv,dt)
+%
+% Andre funksjoner som kreves internt
+%
+%   f.m - Tilstandsfunksjon slik at f(x,u,wm)
+%   g.m - Målelining slik at g(x,u,vm)
+%   rk4int - Integrasjon av tilstandsligning
+%   javobi_central - Lineærisering
+%
+% Innganger:
+%
+%   xb - Initiellt aprioriestimat av tilstandene
+%   u - Pådrag
+%   y - Målinger
+%   wm - Middelverdi av prosessforstyrrelse
+%   vm - Midderlverdi av målestøy
+%   Pb - Initiellt apriori tiltandskovarians matrise
+%   Rw - Prosessforstyrrelse kovariansmatrise
+%   Rv - Målestøy kovariansmatrise
+%   dt - sampletid slik at dt = k+1 - k
+%
+% Utganger:
+%
+%   xh - aposteriori estimat av tilstandene
+%   xb - apriori estimat av tilstandene
+%   yb - aprioris estimat av målingene
+%   K - Kalmanfilterforsterkning
+%   Pb - Apriori tilstandskovarians matrise
+%   Ph - Aposteriori tilstandskovarians matrise
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] David Di Ruscio, "Tilstandsestimering og kalmanfilter",
+%       Telemark university college, March 11, 2003.
+
+% Sjekker innganger
+if nargin < 3
+    tol = sqrt(eps);
+elseif nargin < 4
+    maxit=100;
+end
+
+% Initiering av loop
+itc = 1;
+B = B0;
+ef = feval(fun,B) - y;
+
+while (norm(ef) > tol && itc <= maxit)
+    J = jacobi_central(fun,1,B);
+    ef = feval(fun,B) - y;
+    r = -(J'*J)\J'*ef;
+    B = B + r;
+    itc=itc+1;
+end
