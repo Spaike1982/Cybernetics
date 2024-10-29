@@ -1,0 +1,8 @@
+function V = quadkrit(x)
+
+Qw = eye(7);
+Qv = eye(107);
+
+
+
+V = (v'*Qv*v)/2 + (w'*Qw*w)/2;

@@ -1,0 +1,76 @@
+function [Xh,Xb,Yh,t] = curveestim(g,x0,Y,dt,tfin)
+
+% curveestim.m: curve estimation: 
+% funksjon som beregner estimater av ikke målbare tilstander for en gitt
+% tidsserie med måledata sortert rekkehvis i en matrise Y, slik at
+% Y=[rho(k);rho(k-1);...;rho(k-N+1)]
+% 
+% Fuksjonsrutine
+%
+%   [Xh,Xb,Yb,t] = curveestim(g,xb,Y,dt,tfin)
+%
+% Andre funksjoner som kreves internt
+%
+%   physcheck.m - Sjekke at ikke fysiske grenser blir brutt
+%   gaussnewton.m - Beregne estimater for hvert tidsskritt
+% 
+% Innganger:
+%   g - Målefunksjon, rho = g(x,h)
+%   x0 - initialestimat for tidsserien
+%   Y - Matrise med tidsserie av måledata, slik at
+%   Y=[rho(k);rho(k-1);...;rho(k-N+1)]
+%   dt - tidsskritt mellom målinger
+%   tfin - Sluttid for målinger
+%
+% Utganger:
+%   Xh - Matrise med apriori estimater
+%   Xb - Matrise med aposteriori estimater
+%   Yb - Matrise med målinger
+%   t - Tidsvektor
+% 
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] Henning Winsnes, "Estimering av nivå i tre-faseseparator med
+%       porfilmåler", Masters Thesis, Høgskulen i Telemark, 2007.
+
+% Simulasjonsparametere
+t = 1:dt:tfin;
+nSim = length(t);
+nx = length(x0);
+ny = size(Y,2);
+h = 1:ny;
+h = h';
+
+% Initierer
+xb = x0;
+
+% Lager opp plass for lagring
+Xb = zeros(nx,nSim);
+Xh = Xb;
+Yb = zeros(ny,nSim);
+
+% Beskrankninger
+xL = [0,600,950,5,6,40,41];
+xH = [50,900,1200,40,41,100,101];
+
+for k = 1:nSim
+    p = k/nSim*100;
+    disp(['Prosent ferdig av Gauss Newton : ',num2str(p)]);
+    
+    % Hent ut målinger
+    rho = Y(k,:)';
+    Yb(:,k) = rhob';
+    Xb(:,k) = xb';
+    xb = physcheck(xb,xL,xH);
+    xh = gaussnewton(g,xb,h,rho,0.1,20,xL,xH);
+    Xh(:,k) = xh';
+    xb = xh;
+    
+     % Plotting
+    rhoh = feval(g,xh,h);
+    figure(1)
+    plot(h,y,'*',h,rhoh);
+end

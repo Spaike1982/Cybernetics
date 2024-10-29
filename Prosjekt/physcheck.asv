@@ -1,0 +1,38 @@
+function x = physcheck(x,xL,xH)
+
+% curveestim.m: funksjon som utfører fysisk sjekk av tilstandene 
+% i olje, vann og gass separator. for å overholde ulikhetsbibetingelsene:
+% rhog <= rhoo <= rhow
+% hx1 <= hx2 <= hx3 <= hx4
+% Og beskrankningene:
+% xL<x<xH
+
+
+% Sjekker nedre og øvre grenser
+for i = 1:length(x)
+    % Nedre grenser
+    if x(i) < xL(i)
+        x(i) = xL(i);
+    end
+    % Øvre grenser
+    if x(i) > xH(i)
+        x(i) = xH(i);
+    end
+end
+
+% Beskrankninger mellom tilstandene
+% del hindrer at den deriverte går mot uendelig og at optimaliseringen 
+% kræsjer
+del = 2;
+if x(1) <= x(2);
+    x(1) = x(2);
+end
+if x(2) <= x(3);
+    x(2) = x(3);
+end
+if x(4) <= x(5)-del;
+    x(4) = x(5)-del;
+end
+if x(6) >= x(7)-del;
+    x(6) = x(7)-del;
+end

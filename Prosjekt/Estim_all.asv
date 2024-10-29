@@ -1,0 +1,63 @@
+
+%% Velg om virkelig eller simulerte profildata skal benyttes
+sim = 1; % Sim = 1 gir simulator, eller virkelige data
+
+%% Laster inn virkelige profildata
+lesfil('C:\Documents and Settings\Administrator\My Documents\Skole\2KIT - Vår 2007\Hovedoppgave\Matlab\Diplom\sep1p.mat');
+rho = data(1:end,1:107);
+h = 1:107;
+h = h';
+dt = 30; % i senkunder
+x0 = [50;800;1000;20;25;60;80]; % Initialgjetning av tilstandsestimat
+tfin = size(rho,1)*dt;
+
+
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhopr,rhoIpr,Xpr,XIpr,t] = simprofile('piecerampefunksjon',x0,h,dt,tfin);
+end
+%% Estimeringsfunksjon
+[t,EstGausspr,EstFitpr,EstKFpr,EstKF2pr,EstEKFpr,EstUKFpr,EstSRUKFpr,EstCDKFpr,EstSRCDKFpr,EstMHEQPpr] = profilestim('piecerampefunksjon',x0,rhopr,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhoar,rhoIar,Xar,XIar,t] = simprofile('absrampefunksjon',x0,h,dt,tfin);
+end
+[t,EstGaussar,EstFitar,EstKFar,EstKF2ar,EstEKFar,EstUKFar,EstSRUKFar,EstCDKFar,EstSRCDKFar,EstMHEQPar] = profilestim('absrampefunksjon',x0,rhoar,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhoe,rhoIe,Xe,XIe,t] = simprofile('expfunksjon',x0,h,dt,tfin);
+end
+[t,EstGausse,EstFite,EstKFe,EstKF2e,EstEKFe,EstUKFe,EstSRUKFe,EstCDKFe,EstSRCDKFe,EstMHEQPe] = profilestim('expfunksjon',x0,rhoe,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhoer,rhoIer,Xer,XIer,t] = simprofile('erffunksjon',x0,h,dt,tfin);
+end
+[t,EstGausser,EstFiter,EstKFer,EstKF2er,EstEKFer,EstUKFer,EstSRUKFer,EstCDKFer,EstSRCDKFer,EstMHEQPer] = profilestim('erffunksjon',x0,rhoer,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhoat,rhoIat,Xat,XIat,t] = simprofile('atanfunksjon',x0,h,dt,tfin);
+end
+[t,EstGaussat,EstFitat,EstKFat,EstKF2at,EstEKFat,EstUKFat,EstSRUKFat,EstCDKFat,EstSRCDKFat,EstMHEQPat] = profilestim('atanfunksjon',x0,rhoat,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhoth,rhoIth,Xth,XIth,t] = simprofile('tanhfunksjon',x0,h,dt,tfin);
+end
+[t,EstGaussth,EstFitth,EstKFth,EstKF2th,EstEKFth,EstUKFth,EstSRUKFth,EstCDKFth,EstSRCDKFth,EstMHEQPth] = profilestim('tanhfunksjon',x0,rhoth,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhofo,rhoIfo,Xfo,XIfo,t] = simprofile('firstorderfunction',x0,h,dt,tfin);
+end
+[t,EstGaussfo,EstFitfo,EstKFfo,EstKF2fo,EstEKFfo,EstUKFfo,EstSRUKFfo,EstCDKFfo,EstSRCDKFfo,EstMHEQPfo] = profilestim('firstorderfunction',x0,rhofo,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%% Simuleringsfunksjon
+if sim == 1
+    tfin = 5*60*60;
+    [rhoso,rhoIso,Xso,XIso,t] = simprofile('secondorderfunction',x0,h,dt,tfin);
+end
+[t,EstGaussso,EstFitso,EstKFso,EstKF2so,EstEKFso,EstUKFso,EstSRUKFso,EstCDKFso,EstSRCDKFso,EstMHEQPso] = profilestim('secondorderfunction',x0,rhoso,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');

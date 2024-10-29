@@ -1,0 +1,42 @@
+function J = jacobi_exp(x,h)
+%
+% jacobi_central.m: Funksjon som beregner jacobimatrisen basert på 
+% nummerisk sentral derivasjon.
+%
+% Fuksjonsrutine
+% 
+%   J = jacobi_central(fun,k,h,varargin);
+% 
+% Eksempel på brukemåte for f(x,u): J = jacobi_central('f',2,0.1,x,u) 
+% J = df/du = [df1/du1,...,df1/dun; 
+%              df2/du1,...,df2/dun
+%               .            .
+%              dfN/du1,...,dfN/dun]
+% 
+% Innganger:
+% 
+%   fun - Funksjon som skal deriveres
+%   k - Variabel i funksjonen det skal deriveres rundt.
+%   h - derivasjonsskritt
+%   varargin - variable i funksjonen
+%
+% Utganger:
+%   J - Jacobimatrisen
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+
+a = 4; % Tuningsparameter
+rhog = x(1); rhoo = x(2); rhow = x(3); hx1 = x(4); hx2 = x(5);
+hx3 = x(6); hx4 = x(7);
+
+% Analytisk jacobimatrise
+J = [(exp(-(a*(hx1-2*h+hx2))./(2*hx1-2*hx2)))./((exp(-(a*(hx1-2*h+hx2))./(2*hx1-2*hx2))+1)),...
+    -(exp(-(a*(hx1-2*h+hx2))./(2*hx1-2*hx2))-(exp(-(a*(hx3-2*h+hx4))./(2*hx3-2*hx4))))./((exp(-(a*(hx1-2*h+hx2))./(2*hx1-2*hx2))+1).*(exp(-(a*(hx3-2*h+hx4))./(2*hx3-2*hx4))+1)),...
+    1./((exp(-(a*(hx1-2*h+hx2))./(2*hx1-2*hx2))+1)),...
+    (-a*(exp(-(a*(hx1-2*h+hx2))/(2*hx1-2*hx2)))*(h-hx2)*(rhog-rhoo))/((hx1-hx2)^2*((exp(-(a*(hx1-2*h+hx2))/(2*hx1-2*hx2)))+1)^2),...
+    (a*(exp(-(a*(hx1-2*h+hx2))/(2*hx1-2*hx2)))*(h-hx1)*(rhog-rhoo))/((hx1-hx2)^2*((exp(-(a*(hx1-2*h+hx2))/(2*hx1-2*hx2)))+1)^2),...
+    (-a*(exp(-(a*(hx3-2*h+hx4))/(2*hx3-2*hx4)))*(h-hx4)*(rhoo-rhow))/((hx3-hx4)^2*((exp(-(a*(hx3-2*h+hx4))/(2*hx3-2*hx4)))+1)^2),...
+    (a*(exp(-(a*(hx3-2*h+hx4))/(2*hx3-2*hx4)))*(h-hx3)*(rhoo-rhow))/((hx3-hx4)^2*((exp(-(a*(hx3-2*h+hx4))/(2*hx3-2*hx4)))+1)^2)];

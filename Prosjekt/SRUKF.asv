@@ -1,0 +1,156 @@
+function [xh,xb,yb,K,Sx] = SRUKF(f,g,xh,y,wm,vm,Sx,Sw,Sv,W,gamma,h,dt)
+
+% SRUKF.m: Square Root Uncented Kalman Filter, funksjon som beregner estimater 
+% av ikke målbare tilstander. 
+%
+% Fuksjonsrutine
+% 
+%   [xh,xb,yb,K,Sx] = SRUKF(xh,u,y,wm,vm,Sx,Sw,Sv,W,gamma,dt)
+% 
+% Andre funksjoner som kreves internt
+%
+%   f.m - Tilstandsfunksjon slik at f(x,u,wm)
+%   g.m - Målelining slik at g(x,u,vm)
+%   rk4int - Integrasjon av tilstandsligning
+%   vectorrep.m - Kopiering av kolonner
+%
+% Innganger:
+% 
+%   xh - Initiellt aposterioriestimat av tilstandene
+%   u - Pådrag
+%   y - Målinger
+%   wm - Middelverdi av prosessforstyrrelse
+%   vm - Midderlverdi av målestøy
+%   Sx - Cholesky faktor av Initiellt aposteriori tiltandskovarians matrise
+%   Sw - Cholesky faktor av prosessforstyrrelse kovariansmatrise
+%   Sv - Cholesky faktor av målestøy kovariansmatrise
+%   W - sigma-punkt vekter
+%   gamma - skalering, gamma = sqrt(L+kappa)
+%   dt - sampletid slik at dt = k+1 - k
+%
+% Utganger:
+%   xh - aposteriori estimat av tilstandene
+%   xb - apriori estimat av tilstandene
+%   yb - aprioris estimat av målingene
+%   K - Kalmanfilterforsterkning
+%   Sx - Cholesky faktor av aposteriori tilstandskovarians matrise
+%
+% Sigmapunkt vekter forslag:
+%      % Unscented transformasjon parametere
+%         kappa = 0;         % UKF sekundær skalerings parameter
+%         alpha = 1e-3;      % UKF skalerings faktor
+%         beta = 2;           % UKF kovarians korreksjons faktor,
+%         % beta = 2 ): Antar normalforelt støy
+% 
+%         % Beregning av vekter
+%         lambda = alpha^2*(L+kappa)-L;
+%         gamma = sqrt(L+lambda);
+%         W = [lambda 0.5 0]/(L+lambda); % Sigma punkt vekter
+%         W(3) = W(1)+1-alpha^2+beta;
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] Rudolph van der Merve & Eric A. Wan & Simon I. Julier, "Sigma point 
+%       kalmanfilters for nonlinear estimation and sensor-fusion 
+%       -Applications to integrated navigation", OGI school of Science &
+%       Engineering, 2004.
+%   [2] Wan, E. A. and van der Merwe, R. 2001. Kalman Filtering and Neural
+%       Networks (Chapter 7. The Unscented Kalman Filter). John Wiley &
+%       Sons.
+
+% Dimensjoner
+nx = length(xh);
+ny = length(y);
+nw = length(wm);
+nv = length(vm);
+L = nx + nw + nv;                   % agumentert
+nsp = 2*L+1;       % Antall sigma punkter
+
+% Hjelpestørrelser
+sqrtW = W;
+possitive_W3 = (W(3) > 0);
+sqrtW(1:2) = sqrt(W(1:2));
+sqrtW(3) = sqrt(abs(W(3)));
+
+%% Lager opp plass for lagrning
+X_ = zeros(nx,nsp);
+Y_ = zeros(ny,nsp);
+Zeros_nx_X_nw     = zeros(nx,nw);
+Zeros_nw_X_nx     = zeros(nw,nx);
+Zeros_nxnw_X_nv = zeros(nx+nw,nv);
+Zeros_nv_X_nxnw = zeros(nv,nx+nw);
+
+
+%% Kalmanfilter algoritme:
+
+% Beregning av 2*L+1 sigma vektore
+Z   = vectorrep([xh; wm; vm],nsp);
+SzT = [Sx Zeros_nx_X_nw; Zeros_nw_X_nx Sw];
+Sz  = [SzT Zeros_nxnw_X_nv; Zeros_nv_X_nxnw Sv];
+sSz = gamma*Sz;
+sSzM = [sSz -sSz];
+Z(:,2:nsp) = Z(:,2:nsp) + sSzM;
+
+% Kjører sigma punktene gjennom den ulineære prosessmodellen
+for j = 1:2*L+1
+    X_(:,j) = Z(1:nx,j)+Z(nx+1:nx+nw,j));
+end
+
+% Beregner apriori tilstandsestimat
+xb = W(1)*X_(:,1) + W(2)*sum(X_(:,2:nsp),2);
+
+% Hjelpematrise
+temp1 = X_ - vectorrep(xb,nsp);
+
+% QR oppdatering av tilstands cholesky faktor. NB: Sx er Øvre Cholesky
+% faktor
+[Qx,Sx_] = qr((sqrtW(2)*temp1(:,2:nsp))',0);
+
+if possitive_W3
+    Sx_ = cholupdate(Sx_,sqrtW(3)*temp1(:,1),'+');
+else
+    Sx_ = cholupdate(Sx_,sqrtW(3)*temp1(:,1),'-'); % Merk: Sx er Øvre Cholesky faktor
+end
+
+% Kjører sigma punktene igjennom en mulig ulineær måleligning
+for j = 1:2*L+1
+    Y_(:,j) = feval(g,Z(1:nx,j),h,Z(nx+nw+1:nx+nw+nv,j));  % Updating sigma points with meashurement equations
+end
+
+% Berenger apriori estimat av målinger, yb
+yb = W(1)*Y_(:,1) + W(2)*sum(Y_(:,2:nsp),2);
+
+% Hjelpematrise
+temp2 = Y_ - vectorrep(yb,nsp);
+
+% QR dekomposisjon
+[Qy,Sy] = qr((sqrtW(2)* temp2(:,2:nsp))',0);
+
+if possitive_W3
+    Sy = cholupdate(Sy,sqrtW(3)*temp2(:,1),'+');
+else
+    Sy = cholupdate(Sy,sqrtW(3)*temp2(:,1),'-');  % NB: Sy er Øvre Cholesky fakor
+end
+Sy = Sy'; % trenger nedre triangulær Cholesky faktor
+
+% Kovarians mellom x og y
+Pxy = W(3)*temp1(:,1)*temp2(:,1)' + W(2)*temp1(:,2:nsp)*temp2(:,2:nsp)';
+
+% Kalmanfilter forsterkning
+K = (Pxy/Sy')/Sy;
+
+% Berenger aposteriori estimat
+xh = xb + K*(y-yb);
+
+% Cholesky nedatering
+U = K*Sy;  % Kovarians. Ekvivalent med:  Px = Px_ - KG*Py*KG';
+for j=1:ny
+    Sx_ = cholupdate(Sx_,U(:,j),'-');
+end
+Sx = Sx_';
+
+%%% Clamanfilter, End.
+

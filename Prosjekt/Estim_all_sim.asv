@@ -1,0 +1,484 @@
+clear; clc; clf;
+
+h = 1:107;
+h = h';
+dt = 30; % i senkunder
+x0 = [50;800;1000;20;25;60;80]; % Initialgjetning av tilstandsestimat
+tfin = 10*60*60;
+
+
+for k = 1:4
+    %% Estimerer med alle metoder for alle funksjoner
+%     % prampe
+%     [rhopr,rhoIpr,Xpr,XIpr,t] = simprofile('piecerampefunksjon',x0,h,dt,tfin);
+%     [t,EstGausspr,EstFitpr,EstKFpr,EstKF2pr,EstEKFpr,EstUKFpr,EstSRUKFpr,EstCDKFpr,EstSRCDKFpr,EstMHEQPpr] = profilestim('piecerampefunksjon',x0,rhopr,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+%     % arampe
+%     [rhoar,rhoIar,Xar,XIar,t] = simprofile('absrampefunksjon',x0,h,dt,tfin);
+%     [t,EstGaussar,EstFitar,EstKFar,EstKF2ar,EstEKFar,EstUKFar,EstSRUKFar,EstCDKFar,EstSRCDKFar,EstMHEQPar] = profilestim('absrampefunksjon',x0,rhoar,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+    % S-exp
+    [rhoe,rhoIe,Xe,XIe,t] = simprofile('expfunksjon',x0,h,dt,tfin);
+    [t,EstGausse,EstFite,EstKFe,EstKF2e,EstEKFe,EstUKFe,EstSRUKFe,EstCDKFe,EstSRCDKFe,EstMHEQPe] = profilestim('expfunksjon',x0,rhoe,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+    % S-erf
+    [rhoer,rhoIer,Xer,XIer,t] = simprofile('erffunksjon',x0,h,dt,tfin);
+    [t,EstGausser,EstFiter,EstKFer,EstKF2er,EstEKFer,EstUKFer,EstSRUKFer,EstCDKFer,EstSRCDKFer,EstMHEQPer] = profilestim('erffunksjon',x0,rhoer,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+    % S-atan
+    [rhoat,rhoIat,Xat,XIat,t] = simprofile('atanfunksjon',x0,h,dt,tfin);
+    [t,EstGaussat,EstFitat,EstKFat,EstKF2at,EstEKFat,EstUKFat,EstSRUKFat,EstCDKFat,EstSRCDKFat,EstMHEQPat] = profilestim('atanfunksjon',x0,rhoat,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+    % S-tanh
+    [rhoth,rhoIth,Xth,XIth,t] = simprofile('tanhfunksjon',x0,h,dt,tfin);
+    [t,EstGaussth,EstFitth,EstKFth,EstKF2th,EstEKFth,EstUKFth,EstSRUKFth,EstCDKFth,EstSRCDKFth,EstMHEQPth] = profilestim('tanhfunksjon',x0,rhoth,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+    % 1.order
+    [rhofo,rhoIfo,Xfo,XIfo,t] = simprofile('firstorderfunction',x0,h,dt,tfin);
+    [t,EstGaussfo,EstFitfo,EstKFfo,EstKF2fo,EstEKFfo,EstUKFfo,EstSRUKFfo,EstCDKFfo,EstSRCDKFfo,EstMHEQPfo] = profilestim('firstorderfunction',x0,rhofo,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+    % 2.order
+    [rhoso,rhoIso,Xso,XIso,t] = simprofile('secondorderfunction',x0,h,dt,tfin);
+    [tsim,EstGaussso,EstFitso,EstKFso,EstKF2so,EstEKFso,EstUKFso,EstSRUKFso,EstCDKFso,EstSRCDKFso,EstMHEQPso] = profilestim('secondorderfunction',x0,rhoso,dt,tfin,'lsqgauss','lsqfit','KF','KF2','EKF','UKF','SRUKF','CDKF','SRCDKF','MHEQP');
+
+
+    % Tidsskritt
+    Ns = length(t);
+    
+%     % Henter ut estimater fra prampe
+%     XhGausspr = EstGausspr{1};
+%     XhFitpr = EstFitpr{1};
+%     XhKFpr = EstKFpr{1};
+%     XhKF2pr = EstKF2pr{1};
+%     XhEKFpr = EstEKFpr{1};
+%     XhUKFpr = EstUKFpr{1};
+%     XhSRUKFpr = EstSRUKFpr{1};
+%     XhCDKFpr = EstCDKFpr{1};
+%     XhSRCDKFpr = EstSRCDKFpr{1};
+%     XhMHEQPpr = EstMHEQPpr{1};
+%     
+%     % Beregner RMSEP
+%     RGaussprrho(k) = sum(sqrt(sum((XhGausspr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RGaussprhx(k) = sum(sqrt(sum((XhGausspr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     RFitprrho(k) = sum(sqrt(sum((XhFitpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RFitprhx(k) = sum(sqrt(sum((XhFitpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%        
+%     RKFprrho(k) = sum(sqrt(sum((XhKFpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RKFprhx(k) = sum(sqrt(sum((XhKFpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%         
+%     RKF2prrho(k) = sum(sqrt(sum((XhKF2pr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RKF2prhx(k) = sum(sqrt(sum((XhKF2pr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     REKFprrho(k) = sum(sqrt(sum((XhEKFpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     REKFprhx(k) = sum(sqrt(sum((XhEKFpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     RUKFprrho(k) = sum(sqrt(sum((XhUKFpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RUKFprhx(k) = sum(sqrt(sum((XhUKFpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     RSRUKFprrho(k) = sum(sqrt(sum((XhSRUKFpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RSRUKFprhx(k) = sum(sqrt(sum((XhSRUKFpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     RCDKFprrho(k) = sum(sqrt(sum((XhCDKFpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RCDKFprhx(k) = sum(sqrt(sum((XhCDKFpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     RSRCDKFprrho(k) = sum(sqrt(sum((XhSRCDKFpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RSRCDKFprhx(k) = sum(sqrt(sum((XhSRCDKFpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     RMHEQPprrho(k) = sum(sqrt(sum((XhMHEQPpr(1:3,:)-XIpr(1:3,:)).^2,2)/Ns));
+%     RMHEQPprhx(k) = sum(sqrt(sum((XhMHEQPpr(4:7,:)-XIpr(4:7,:)).^2,2)/Ns));
+%     
+%     % Henter ut beregningstid for prampe
+%     calGausspr(k) = mean(EstGausspr{4});
+%     calFitpr(k) = mean(EstFitpr{4});
+%     calKFpr(k) = mean(EstKFpr{7});
+%     calKF2pr(k) = mean(EstKF2pr{7});
+%     calEKFpr(k) = mean(EstEKFpr{7});
+%     calUKFpr(k) = mean(EstUKFpr{7});
+%     calSRUKFpr(k) = mean(EstSRUKFpr{7});
+%     calCDKFpr(k) = mean(EstCDKFpr{7});
+%     calSRCDKFpr(k) = mean(EstSRCDKFpr{7});
+%     calMHEQPpr(k) = mean(EstMHEQPpr{6});
+%     
+%     % Henter ut estimater fra arampe
+%     XhGaussar = EstGaussar{1};
+%     XhFitar = EstFitar{1};
+%     XhKFar = EstKFar{1};
+%     XhKF2ar = EstKF2ar{1};
+%     XhEKFar = EstEKFar{1};
+%     XhUKFar = EstUKFar{1};
+%     XhSRUKFar = EstSRUKFar{1};
+%     XhCDKFar = EstCDKFar{1};
+%     XhSRCDKFar = EstSRCDKFar{1};
+%     XhMHEQPar = EstMHEQPar{1};
+%     
+%     % Beregner RMSEP
+%     RGaussarrho(k) = sum(sqrt(sum((XhGaussar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RGaussarhx(k) = sum(sqrt(sum((XhGaussar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     RFitarrho(k) = sum(sqrt(sum((XhFitar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RFitarhx(k) = sum(sqrt(sum((XhFitar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%        
+%     RKFarrho(k) = sum(sqrt(sum((XhKFar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RKFarhx(k) = sum(sqrt(sum((XhKFar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%         
+%     RKF2arrho(k) = sum(sqrt(sum((XhKF2ar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RKF2arhx(k) = sum(sqrt(sum((XhKF2ar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     REKFarrho(k) = sum(sqrt(sum((XhEKFar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     REKFarhx(k) = sum(sqrt(sum((XhEKFar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     RUKFarrho(k) = sum(sqrt(sum((XhUKFar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RUKFarhx(k) = sum(sqrt(sum((XhUKFar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     RSRUKFarrho(k) = sum(sqrt(sum((XhSRUKFar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RSRUKFarhx(k) = sum(sqrt(sum((XhSRUKFar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     RCDKFarrho(k) = sum(sqrt(sum((XhCDKFar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RCDKFarhx(k) = sum(sqrt(sum((XhCDKFar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     RSRCDKFarrho(k) = sum(sqrt(sum((XhSRCDKFar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RSRCDKFarhx(k) = sum(sqrt(sum((XhSRCDKFar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%     RMHEQParrho(k) = sum(sqrt(sum((XhMHEQPar(1:3,:)-XIar(1:3,:)).^2,2)/Ns));
+%     RMHEQParhx(k) = sum(sqrt(sum((XhMHEQPar(4:7,:)-XIar(4:7,:)).^2,2)/Ns));
+%     
+%        % Henter ut beregningstid for arampe
+%     calGaussar(k) = mean(EstGaussar{4});
+%     calFitar(k) = mean(EstFitar{4});
+%     calKFar(k) = mean(EstKFar{7});
+%     calKF2ar(k) = mean(EstKF2ar{7});
+%     calEKFar(k) = mean(EstEKFar{7});
+%     calUKFar(k) = mean(EstUKFar{7});
+%     calSRUKFar(k) = mean(EstSRUKFar{7});
+%     calCDKFar(k) = mean(EstCDKFar{7});
+%     calSRCDKFar(k) = mean(EstSRCDKFar{7});
+%     calMHEQPar(k) = mean(EstMHEQPar{6});
+    
+    
+    % Henter ut estimater fra S-exp
+    XhGausse = EstGausse{1};
+    XhFite = EstFite{1};
+    XhKFe = EstKFe{1};
+    XhKF2e = EstKF2e{1};
+    XhEKFe = EstEKFe{1};
+    XhUKFe = EstUKFe{1};
+    XhSRUKFe = EstSRUKFe{1};
+    XhCDKFe = EstCDKFe{1};
+    XhSRCDKFe = EstSRCDKFe{1};
+    XhMHEQPe = EstMHEQPe{1};
+    
+    % Beregner RMSEP
+    RGausserho(k) = sum(sqrt(sum((XhGausse(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RGaussehx(k) = sum(sqrt(sum((XhGausse(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    RFiterho(k) = sum(sqrt(sum((XhFite(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RFitehx(k) = sum(sqrt(sum((XhFite(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+       
+    RKFerho(k) = sum(sqrt(sum((XhKFe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RKFehx(k) = sum(sqrt(sum((XhKFe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+        
+    RKF2erho(k) = sum(sqrt(sum((XhKF2e(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RKF2ehx(k) = sum(sqrt(sum((XhKF2e(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    REKFerho(k) = sum(sqrt(sum((XhEKFe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    REKFehx(k) = sum(sqrt(sum((XhEKFe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    RUKFerho(k) = sum(sqrt(sum((XhUKFe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RUKFehx(k) = sum(sqrt(sum((XhUKFe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    RSRUKFerho(k) = sum(sqrt(sum((XhSRUKFe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RSRUKFehx(k) = sum(sqrt(sum((XhSRUKFe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    RCDKFerho(k) = sum(sqrt(sum((XhCDKFe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RCDKFehx(k) = sum(sqrt(sum((XhCDKFe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    RSRCDKFerho(k) = sum(sqrt(sum((XhSRCDKFe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RSRCDKFehx(k) = sum(sqrt(sum((XhSRCDKFe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+    RMHEQPerho(k) = sum(sqrt(sum((XhMHEQPe(1:3,:)-XIe(1:3,:)).^2,2)/Ns));
+    RMHEQPehx(k) = sum(sqrt(sum((XhMHEQPe(4:7,:)-XIe(4:7,:)).^2,2)/Ns));
+    
+           % Henter ut beregningstid for arampe
+    calGausse(k) = mean(EstGausse{4});
+    calFite(k) = mean(EstFite{4});
+    calKFe(k) = mean(EstKFe{7});
+    calKF2e(k) = mean(EstKF2e{7});
+    calEKFe(k) = mean(EstEKFe{7});
+    calUKFe(k) = mean(EstUKFe{7});
+    calSRUKFe(k) = mean(EstSRUKFe{7});
+    calCDKFe(k) = mean(EstCDKFe{7});
+    calSRCDKFe(k) = mean(EstSRCDKFe{7});
+    calMHEQPe(k) = mean(EstMHEQPe{6});
+    
+    % Henter ut estimater fra S-erf
+    XhGausser = EstGausser{1};
+    XhFiter = EstFiter{1};
+    XhKFer = EstKFer{1};
+    XhKF2er = EstKF2er{1};
+    XhEKFer = EstEKFer{1};
+    XhUKFer = EstUKFer{1};
+    XhSRUKFer = EstSRUKFer{1};
+    XhCDKFer = EstCDKFer{1};
+    XhSRCDKFer = EstSRCDKFer{1};
+    XhMHEQPer = EstMHEQPer{1};
+    
+    % Beregner RMSEP
+    RGausserrho(k) = sum(sqrt(sum((XhGausser(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RGausserhx(k) = sum(sqrt(sum((XhGausser(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    RFiterrho(k) = sum(sqrt(sum((XhFiter(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RFiterhx(k) = sum(sqrt(sum((XhFiter(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+       
+    RKFerrho(k) = sum(sqrt(sum((XhKFer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RKFerhx(k) = sum(sqrt(sum((XhKFer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+        
+    RKF2errho(k) = sum(sqrt(sum((XhKF2er(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RKF2erhx(k) = sum(sqrt(sum((XhKF2er(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    REKFerrho(k) = sum(sqrt(sum((XhEKFer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    REKFerhx(k) = sum(sqrt(sum((XhEKFer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    RUKFerrho(k) = sum(sqrt(sum((XhUKFer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RUKFerhx(k) = sum(sqrt(sum((XhUKFer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    RSRUKFerrho(k) = sum(sqrt(sum((XhSRUKFer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RSRUKFerhx(k) = sum(sqrt(sum((XhSRUKFer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    RCDKFerrho(k) = sum(sqrt(sum((XhCDKFer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RCDKFerhx(k) = sum(sqrt(sum((XhCDKFer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    RSRCDKFerrho(k) = sum(sqrt(sum((XhSRCDKFer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RSRCDKFerhx(k) = sum(sqrt(sum((XhSRCDKFer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+    RMHEQPerrho(k) = sum(sqrt(sum((XhMHEQPer(1:3,:)-XIer(1:3,:)).^2,2)/Ns));
+    RMHEQPerhx(k) = sum(sqrt(sum((XhMHEQPer(4:7,:)-XIer(4:7,:)).^2,2)/Ns));
+    
+           % Henter ut beregningstid for arampe
+    calGausser(k) = mean(EstGausser{4});
+    calFiter(k) = mean(EstFiter{4});
+    calKFer(k) = mean(EstKFer{7});
+    calKF2er(k) = mean(EstKF2er{7});
+    calEKFer(k) = mean(EstEKFer{7});
+    calUKFer(k) = mean(EstUKFer{7});
+    calSRUKFer(k) = mean(EstSRUKFer{7});
+    calCDKFer(k) = mean(EstCDKFer{7});
+    calSRCDKFer(k) = mean(EstSRCDKFer{7});
+    calMHEQPer(k) = mean(EstMHEQPer{6});
+    
+    
+    % Henter ut estimater fra S-atan
+    XhGaussat = EstGaussat{1};
+    XhFitat = EstFitat{1};
+    XhKFat = EstKFat{1};
+    XhKF2at = EstKF2at{1};
+    XhEKFat = EstEKFat{1};
+    XhUKFat = EstUKFat{1};
+    XhSRUKFat = EstSRUKFat{1};
+    XhCDKFat = EstCDKFat{1};
+    XhSRCDKFat = EstSRCDKFat{1};
+    XhMHEQPat = EstMHEQPat{1};
+    
+    % Beregner RMSEP
+    RGaussatrho(k) = sum(sqrt(sum((XhGaussat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RGaussathx(k) = sum(sqrt(sum((XhGaussat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    RFitatrho(k) = sum(sqrt(sum((XhFitat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RFitathx(k) = sum(sqrt(sum((XhFitat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+       
+    RKFatrho(k) = sum(sqrt(sum((XhKFat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RKFathx(k) = sum(sqrt(sum((XhKFat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+        
+    RKF2atrho(k) = sum(sqrt(sum((XhKF2at(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RKF2athx(k) = sum(sqrt(sum((XhKF2at(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    REKFatrho(k) = sum(sqrt(sum((XhEKFat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    REKFathx(k) = sum(sqrt(sum((XhEKFat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    RUKFatrho(k) = sum(sqrt(sum((XhUKFat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RUKFathx(k) = sum(sqrt(sum((XhUKFat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    RSRUKFatrho(k) = sum(sqrt(sum((XhSRUKFat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RSRUKFathx(k) = sum(sqrt(sum((XhSRUKFat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    RCDKFatrho(k) = sum(sqrt(sum((XhCDKFat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RCDKFathx(k) = sum(sqrt(sum((XhCDKFat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    RSRCDKFatrho(k) = sum(sqrt(sum((XhSRCDKFat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RSRCDKFathx(k) = sum(sqrt(sum((XhSRCDKFat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+    RMHEQPatrho(k) = sum(sqrt(sum((XhMHEQPat(1:3,:)-XIat(1:3,:)).^2,2)/Ns));
+    RMHEQPathx(k) = sum(sqrt(sum((XhMHEQPat(4:7,:)-XIat(4:7,:)).^2,2)/Ns));
+    
+               % Henter ut beregningstid for arampe
+    calGaussat(k) = mean(EstGaussat{4});
+    calFitat(k) = mean(EstFitat{4});
+    calKFat(k) = mean(EstKFat{7});
+    calKF2at(k) = mean(EstKF2at{7});
+    calEKFat(k) = mean(EstEKFat{7});
+    calUKFat(k) = mean(EstUKFat{7});
+    calSRUKFat(k) = mean(EstSRUKFat{7});
+    calCDKFat(k) = mean(EstCDKFat{7});
+    calSRCDKFat(k) = mean(EstSRCDKFat{7});
+    calMHEQPat(k) = mean(EstMHEQPat{6});
+    
+    % Henter ut estimater fra S-tanh
+    XhGaussth = EstGaussth{1};
+    XhFitth = EstFitth{1};
+    XhKFth = EstKFth{1};
+    XhKF2th = EstKF2th{1};
+    XhEKFth = EstEKFth{1};
+    XhUKFth = EstUKFth{1};
+    XhSRUKFth = EstSRUKFth{1};
+    XhCDKFth = EstCDKFth{1};
+    XhSRCDKFth = EstSRCDKFth{1};
+    XhMHEQPth = EstMHEQPth{1};
+    
+    % Beregner RMSEP
+    RGaussthrho(k) = sum(sqrt(sum((XhGaussth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RGaussthhx(k) = sum(sqrt(sum((XhGaussth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    RFitthrho(k) = sum(sqrt(sum((XhFitth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RFitthhx(k) = sum(sqrt(sum((XhFitth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+       
+    RKFthrho(k) = sum(sqrt(sum((XhKFth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RKFthhx(k) = sum(sqrt(sum((XhKFth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+        
+    RKF2thrho(k) = sum(sqrt(sum((XhKF2th(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RKF2thhx(k) = sum(sqrt(sum((XhKF2th(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    REKFthrho(k) = sum(sqrt(sum((XhEKFth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    REKFthhx(k) = sum(sqrt(sum((XhEKFth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    RUKFthrho(k) = sum(sqrt(sum((XhUKFth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RUKFthhx(k) = sum(sqrt(sum((XhUKFth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    RSRUKFthrho(k) = sum(sqrt(sum((XhSRUKFth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RSRUKFthhx(k) = sum(sqrt(sum((XhSRUKFth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    RCDKFthrho(k) = sum(sqrt(sum((XhCDKFth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RCDKFthhx(k) = sum(sqrt(sum((XhCDKFth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    RSRCDKFthrho(k) = sum(sqrt(sum((XhSRCDKFth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RSRCDKFthhx(k) = sum(sqrt(sum((XhSRCDKFth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+    RMHEQPthrho(k) = sum(sqrt(sum((XhMHEQPth(1:3,:)-XIth(1:3,:)).^2,2)/Ns));
+    RMHEQPthhx(k) = sum(sqrt(sum((XhMHEQPth(4:7,:)-XIth(4:7,:)).^2,2)/Ns));
+    
+                   % Henter ut beregningstid for arampe
+    calGaussth(k) = mean(EstGaussth{4});
+    calFitth(k) = mean(EstFitth{4});
+    calKFth(k) = mean(EstKFth{7});
+    calKF2th(k) = mean(EstKF2th{7});
+    calEKFth(k) = mean(EstEKFth{7});
+    calUKFth(k) = mean(EstUKFth{7});
+    calSRUKFth(k) = mean(EstSRUKFth{7});
+    calCDKFth(k) = mean(EstCDKFth{7});
+    calSRCDKFth(k) = mean(EstSRCDKFth{7});
+    calMHEQPth(k) = mean(EstMHEQPth{6});
+    
+    % Henter ut estimater fra 1.order
+    XhGaussfo = EstGaussfo{1};
+    XhFitfo = EstFitfo{1};
+    XhKFfo = EstKFfo{1};
+    XhKF2fo = EstKF2fo{1};
+    XhEKFfo = EstEKFfo{1};
+    XhUKFfo = EstUKFfo{1};
+    XhSRUKFfo = EstSRUKFfo{1};
+    XhCDKFfo = EstCDKFfo{1};
+    XhSRCDKFfo = EstSRCDKFfo{1};
+    XhMHEQPfo = EstMHEQPfo{1};
+    
+    % Beregner RMSEP
+    RGaussforho(k) = sum(sqrt(sum((XhGaussfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RGaussfohx(k) = sum(sqrt(sum((XhGaussfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    RFitforho(k) = sum(sqrt(sum((XhFitfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RFitfohx(k) = sum(sqrt(sum((XhFitfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+       
+    RKFforho(k) = sum(sqrt(sum((XhKFfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RKFfohx(k) = sum(sqrt(sum((XhKFfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+        
+    RKF2forho(k) = sum(sqrt(sum((XhKF2fo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RKF2fohx(k) = sum(sqrt(sum((XhKF2fo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    REKFforho(k) = sum(sqrt(sum((XhEKFfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    REKFfohx(k) = sum(sqrt(sum((XhEKFfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    RUKFforho(k) = sum(sqrt(sum((XhUKFfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RUKFfohx(k) = sum(sqrt(sum((XhUKFfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    RSRUKFforho(k) = sum(sqrt(sum((XhSRUKFfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RSRUKFfohx(k) = sum(sqrt(sum((XhSRUKFfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    RCDKFforho(k) = sum(sqrt(sum((XhCDKFfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RCDKFfohx(k) = sum(sqrt(sum((XhCDKFfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    RSRCDKFforho(k) = sum(sqrt(sum((XhSRCDKFfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RSRCDKFfohx(k) = sum(sqrt(sum((XhSRCDKFfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+    RMHEQPforho(k) = sum(sqrt(sum((XhMHEQPfo(1:3,:)-XIfo(1:3,:)).^2,2)/Ns));
+    RMHEQPfohx(k) = sum(sqrt(sum((XhMHEQPfo(4:7,:)-XIfo(4:7,:)).^2,2)/Ns));
+    
+                       % Henter ut beregningstid for arampe
+    calGaussfo(k) = mean(EstGaussfo{4});
+    calFitfo(k) = mean(EstFitfo{4});
+    calKFfo(k) = mean(EstKFfo{7});
+    calKF2fo(k) = mean(EstKF2fo{7});
+    calEKFfo(k) = mean(EstEKFfo{7});
+    calUKFfo(k) = mean(EstUKFfo{7});
+    calSRUKFfo(k) = mean(EstSRUKFfo{7});
+    calCDKFfo(k) = mean(EstCDKFfo{7});
+    calSRCDKFfo(k) = mean(EstSRCDKFfo{7});
+    calMHEQPfo(k) = mean(EstMHEQPfo{6});
+    
+    % Henter ut estimater fra 1.order
+    XhGaussso = EstGaussso{1};
+    XhFitso = EstFitso{1};
+    XhKFso = EstKFso{1};
+    XhKF2so = EstKF2so{1};
+    XhEKFso = EstEKFso{1};
+    XhUKFso = EstUKFso{1};
+    XhSRUKFso = EstSRUKFso{1};
+    XhCDKFso = EstCDKFso{1};
+    XhSRCDKFso = EstSRCDKFso{1};
+    XhMHEQPso = EstMHEQPso{1};
+    
+    % Beregner RMSEP
+    RGausssorho(k) = sum(sqrt(sum((XhGaussso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RGausssohx(k) = sum(sqrt(sum((XhGaussso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    RFitsorho(k) = sum(sqrt(sum((XhFitso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RFitsohx(k) = sum(sqrt(sum((XhFitso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+       
+    RKFsorho(k) = sum(sqrt(sum((XhKFso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RKFsohx(k) = sum(sqrt(sum((XhKFso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+        
+    RKF2sorho(k) = sum(sqrt(sum((XhKF2so(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RKF2sohx(k) = sum(sqrt(sum((XhKF2so(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    REKFsorho(k) = sum(sqrt(sum((XhEKFso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    REKFsohx(k) = sum(sqrt(sum((XhEKFso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    RUKFsorho(k) = sum(sqrt(sum((XhUKFso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RUKFsohx(k) = sum(sqrt(sum((XhUKFso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    RSRUKFsorho(k) = sum(sqrt(sum((XhSRUKFso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RSRUKFsohx(k) = sum(sqrt(sum((XhSRUKFso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    RCDKFsorho(k) = sum(sqrt(sum((XhCDKFso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RCDKFsohx(k) = sum(sqrt(sum((XhCDKFso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    RSRCDKFsorho(k) = sum(sqrt(sum((XhSRCDKFso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RSRCDKFsohx(k) = sum(sqrt(sum((XhSRCDKFso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+    RMHEQPsorho(k) = sum(sqrt(sum((XhMHEQPso(1:3,:)-XIso(1:3,:)).^2,2)/Ns));
+    RMHEQPsohx(k) = sum(sqrt(sum((XhMHEQPso(4:7,:)-XIso(4:7,:)).^2,2)/Ns));
+    
+                          % Henter ut beregningstid for arampe
+    calGaussso(k) = mean(EstGaussso{4});
+    calFitso(k) = mean(EstFitso{4});
+    calKFso(k) = mean(EstKFso{7});
+    calKF2so(k) = mean(EstKF2so{7});
+    calEKFso(k) = mean(EstEKFso{7});
+    calUKFso(k) = mean(EstUKFso{7});
+    calSRUKFso(k) = mean(EstSRUKFso{7});
+    calCDKFso(k) = mean(EstCDKFso{7});
+    calSRCDKFso(k) = mean(EstSRCDKFso{7});
+    calMHEQPso(k) = mean(EstMHEQPso{6});
+        
+  end
+

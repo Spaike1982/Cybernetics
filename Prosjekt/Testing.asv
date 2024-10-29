@@ -1,0 +1,33 @@
+% Testskript;
+clear; clc;
+format short g
+
+%% Laster inn virkelige profildata
+lesfil('C:\Documents and Settings\Administrator\My Documents\Skole\2KIT - Vår 2007\Hovedoppgave\Matlab\Diplom\sep1p.mat');
+rho = data(1:end,1:107);
+h = 1:107;
+h = h';
+dt = 30;
+x0 = [10;800;1000;20;25;60;80];
+tfin = size(rho,1)*dt;
+
+% Simuleringsfunksjon
+tfin = 12*60*60; 
+[rho,rhot,X,t] = simprofile('piecerampefunksjon',x0,h,dt,tfin);
+
+[t,SRCDKFparam,EKFparam] = profilestim('f','piecerampefunksjon',x0,rho,dt,tfin,'SRCDKF','KF2');
+XhEKF = SRCDKFparam{1};
+KkEKF = SRCDKFparam{4};
+XhEKF = EKFparam{1};
+KkEKF = EKFparam{4};
+
+figure(1)
+plot(t,X(1:3,:),'-',t,XhEKF(1:3,:),':',t,XhSRCDKF(1:3,:),'');
+title('Simulert mot estimert tetthet')
+ylabel('[kg/m^3]')
+xlabel('[s]')
+figure(2)
+plot(t,X(4:7,:),'-',t,XhEKF(4:7,:),':');
+title('Simulert mot estimert nivå')
+ylabel('målepunkt')
+xlabel('s')

@@ -1,0 +1,50 @@
+%%% Raadata.m: Skript for plotting av tetthetsdata fra en virkelig prosess
+
+clear; clc;
+format short g
+
+% Spesifiser filbane
+lesfil('C:\Documents and Settings\Administrator\My Documents\Skole\2KIT - Vår 2007\Hovedoppgave\Matlab\Prosjekt\sep1p.mat');
+
+% Spesifiser aktuelle data
+y = data(1:end,1:107);
+
+% Finner dimensjoner
+[Nr,ny] = size(y);
+
+% Danner vektore for plotting
+nj = 0:ny-1; % Niåmålepunkter
+nk = 0:Nr-1; % Tidssampler
+
+% Sampletid
+dt = 30; % [sek]
+
+% sluttid
+tfin = Nr*dt;
+
+% Tidsvektor
+t = 1:dt:tfin;
+t = t/60;
+
+%% Plotting
+% ------------- Tetthet mot målepunkt ------------
+sample = 1000;
+figure(1)
+plot(nj,y(sample,:),'*')
+title(['Reell tetthetsprofil i separator ved tidssample, k = ',num2str(sample)])
+legend('Støybefengte målinger')
+xlabel('Nivå (målepunkt)'), ylabel('Tetthet (rho)')
+
+% ------------- Tetthet mot tidssample ---------------
+maalepunkt = 45;
+figure(2)
+plot(t,y(:,maalepunkt),'.')
+title(['Reell tetthetsprofil i separator ved målepunkt ',num2str(maalepunkt)])
+legend('Støybefengte data')
+ylabel('Tetthet (rho)'), xlabel('Tid [min])')
+
+%% ----------- Fancy 3d plot av all data for full oversikt ---------
+figure(3)
+surf(t(1:100:end),nj,y(1:100:end,:));
+title('Virkelig tetthesprofil')
+xlabel('Sampler, (30sek)'), ylabel('Målepunkt'), zlabel('Tetthet');

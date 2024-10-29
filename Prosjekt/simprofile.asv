@@ -1,0 +1,105 @@
+function [rho,rhoI,X,XI,t] = simprofile(fun,x,h,dt,tfin)
+%
+% simprofile.m: 
+%   Funksjon for simulering av tetthetsprofil
+%   
+%  Fuksjonsrutine:
+%   [rho,rhoI,X,XI,t] = simprofile(fun,x,h,dt,tfin)
+%
+% Innganger:
+%   fun - Funksjon av formen; rho = fun(x,h) som beskriver profilet.
+%   x - Tilstandsvektor
+%   h - Vektor med målepunkter
+%   dt - tidskritt for simuleringen
+%   tfin - Sluttid for simuleringen
+%
+% Utganger:
+%   rho - Simulert tetthesprofil med støy for alle t
+%   rhoI - Sumulert tetthetsprofil uten støy for alle t
+%   X - Tilstandsvektor med støy for alle t
+%   XI - Tilstandsvektor uten støy for alle t (Ideell profil)
+%   t - Tidsvektor
+%
+% Sluttkommentar:
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen 
+%   i Telemark 2007.
+%
+% Referanser:
+%   [1] Henning Winsnes, "Estimering av nivå i tre-faseseparator med
+%       porfilmåler", Masters Thesis, Høgskulen i Telemark, 2007.
+
+% Simulasjonsparametere
+t = 1:dt:tfin;
+nSim = length(t);
+ny = length(h);
+nx = length(x);
+
+% Lager opp plass for lagring
+rho = zeros(nSim,ny);
+rhoI = rho;
+X = zeros(nx,nSim);
+XI = X;
+
+% Lager opp tilstaner for hele tiden t
+x = vectorrep(x,nSim);
+
+% Lager opp støyvektore
+w = [2*randn(1,nSim);10*randn(2,nSim);1*randn(4,nSim)];
+v = 25*randn(ny,nSim);
+
+% Bekrankninger
+xL = [0,600,950,5,6,40,41];
+xH = [100,900,1200,40,41,100,101];
+
+% Simuleringsløkke
+for k = 1:nSim
+    
+%     % Endringer i tilstander etter en halvtime
+%     if k >= 60
+%         % Tetthet
+%         x(1,k) = x(1,k) + 20; % Gass
+%         x(2,k) = x(2,k) - 100; % Olje 
+%         x(3,k) = x(3,k) + 100; % Vann
+%         % Nivå
+%         x(4,k) = x(4,k) + 2; % hx1
+%         x(5,k) = x(5,k) + 4; % hx2
+%         x(6,k) = x(6,k) + 5; % hx3
+%         x(7,k) = x(7,k) - 5; % hx4
+%     end
+        
+    % Legger til hvit støy
+    xw = x(:,k) + w(:,k);
+    
+    % Sjekker at fysiske grenser ikke blir brutt
+    xw = physcheck(xw,xL,xH);
+    
+    % Genererer støypåvirkede målinger
+    rho(k,:) = feval(fun,xw,h) + v(:,k);
+    
+    % Simulerer feilmålinger mellom 4 og 6 timer
+    if k >= 20 && k <= 25
+        rho(k,40) = 2000;   % Sandkorn
+    end
+    if k >= 30 && k <= 35
+        rho(k,40) = 2000;   % Sandkorn
+    end
+    if k >= 40 && k <= 50
+        rho(k,40) = 2000;   % Sandkorn
+    end  
+    
+    if k >= 70 && k <= 80
+        rho(k,40) = 0;      % Sensorsvikt
+        rho(k,40) = 0;      % Sensorsvikt
+    end
+    
+    % Genrerer ideelle målinger (støyfrie)
+    rhoI(k,:) = feval(fun,xw,h);
+    
+    % Lagrer støyfulle tilstander
+    X(:,k) = xw';
+    
+    % Lagrer ideelle tilstander
+    XI(:,k) = x(:,k)';
+end
+
+

@@ -1,0 +1,17 @@
+function [redinnov] = innovred(innov,redvec)
+
+% For reduksjon av innovasjonsvektor slik at den kan benyttes sammen med 
+% redusert K: fra redKFgain
+k = 1;
+i = 1;
+redinnov(i) = innov(k);
+while k <= ny;
+    % Sjekker for like kolonner 
+    while redvec(i) ~= k
+        redinnov(i) = redinnov(i) + innov(k);
+        k = k + 1;
+        i = i + 1;
+    end
+    redinnov(k) = innov(k);
+    k = k + 1;
+end

@@ -1,0 +1,213 @@
+
+sim = 1;
+
+% Henter ut fasit
+if sim == 1
+    rho = rhoar;
+    rhoI = rhoIar;
+    X = Xar;
+    XI = XIar;
+%    t = tsim;
+end
+
+
+% Henter ut estimater
+XhFit = EstFit{1};
+XhEKF = EstEKF{1};
+XhMHEQP = EstMHEQP{1};
+Yh = EstMHEQP{3};
+cal = EstMHEQP{6};
+
+%% Beregn RMESP for alle tidspunkt
+ny = length(h);
+m = length(t);
+if sim == 1
+    for i = 1:m
+        RMSEP(i) = sqrt(sum((rhoI(i,:)'-Yh(:,i)).^2)/ny);
+    end
+else
+    for i = 1:m
+        RMSEP(i) = sqrt(sum((rho(i,:)'-Yh(:,i)).^2)/ny);
+    end
+end
+
+% Viktige størrelser
+disp('---------------')
+disp(['Maksiaml RMESP av profilestimat ',num2str(max(RMSEP))])
+disp('---------------')
+disp(['Minimal RMESP av profilestimat ',num2str(min(RMSEP))])
+disp('---------------')
+disp(['Gjennomsittelig RMESP av profilestimat ',num2str(mean(RMSEP))])
+disp('---------------')
+disp(['Standardavvik RMESP av profilestimat ',num2str(std(RMSEP))])
+disp('---------------')
+disp('---------------')
+disp(['Maksiaml kalkuleringstid av profilestimat ',num2str(max(cal))])
+disp('---------------')
+disp(['Minimal kalkuleringstid av profilestimat ',num2str(min(cal))])
+disp('---------------')
+disp(['Gjennomsittelig kalkuleringstid av profilestimat ',num2str(mean(cal))])
+disp('---------------')
+disp(['Standardavvik kalkuleringstid av profilestimat ',num2str(std(cal))])
+
+% Beregner RMSEP mellom tilstandsetimat og ideell tilstand
+if sim == 1
+    nx = length(x0);
+    m = length(t);
+    disp('---------------')
+    disp('RMESP av tilstandsestimater: ')
+    RMSEPx = sqrt(sum((Xh(:,1:end)-XI(:,1:end)).^2,2)/m)
+    disp('---------------')
+    disp(['Summert RMESP av tetthetsestimat ',num2str(sum(RMSEPx(1:3)))])
+    disp('---------------')
+    disp(['Sumert RMESP av nviåestimat ',num2str(sum(RMSEPx(4:7)))])
+end
+
+%% To utvalgte tidspunkter for nærmere analyse av profil
+t1 = 1; t2 = 2;
+disp('---------------')
+disp(['Tilstandsestimat ved tidssample: ',num2str(t1),' :'])
+disp(Xh(:,t1))
+disp('---------------')
+disp(['Tilstandsestimat ved tidssample: ',num2str(t2),' :'])
+disp(Xh(:,t2))
+% Lager opp linjer for plotting av tilstandsestimater i figurer
+r = min(min(rho)):max(max(rho))+10;
+rn = length(r);
+rhot1 = vectorrep(Xh(1:3,t1),ny);
+rhot2 = vectorrep(Xh(1:3,t2),ny);
+hxt1 = vectorrep(Xh(4:7,t1),rn);
+hxt2 = vectorrep(Xh(4:7,t2),rn);
+
+%% Plotting
+t = t/60/60; % Omgjøring av tidsvektor til timer
+% Tilstandsplot for simulert og estimert profil
+if sim == 1
+    figure(1)
+    plot(t,X(1,:),':',t,XI(1,:),'--',t,Xh(1,:),'-');
+    title('Estimert og simulert tetthet av gass')
+    ylabel('Tetthet [kg/m^3]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    figure(2)
+    plot(t,X(2,:),':',t,XI(2,:),'--',t,Xh(2,:),'-');
+    title('Estimert og simulert tetthet av olje')
+    ylabel('Tetthet [kg/m^3]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    figure(3)
+    plot(t,X(3,:),':',t,XI(3,:),'--',t,Xh(3,:),'-');
+    title('Esrimert og simulert tetthet av vann')
+    ylabel('Tetthet [kg/m^3]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    figure(4)
+    plot(t,X(4,:),':',t,XI(4,:),'--',t,Xh(4,:),'-');
+    title('Estimert og simulert nivå hx1')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    figure(5)
+    plot(t,X(5,:),':',t,XI(5,:),'--',t,Xh(5,:),'-');
+    title('Estimert og siulert nivå hx2')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    figure(6)
+    plot(t,X(6,:),':',t,XI(6,:),'--',t,Xh(6,:),'-');
+    title('Estimert og simulert nivå hx3')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    figure(7)
+    plot(t,X(7,:),':',t,XI(7,:),'--',t,Xh(7,:),'-');
+    title('Esimert og simulert nivå hx4')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('tilstand med støy','Ideell tilstand','estimert tilstand')
+    % Profilplot for to utvalgte tidspunkt
+    figure(8)
+    plot(h,rhoI(t1,:),'--',h,rho(t1,:),'*',h,Yh(:,t1),'r-',h,rhot1,':',hxt1,r,':')
+    legend('Ideellt profil','Simulert profil','Estimert profil','Estimerte tilstander')
+    title('Estimering av virkelige profildata')
+    ylabel('Tetthet rho')
+    xlabel('Nivå målepunkt [h]')
+    figure(9)
+    plot(h,rhoI(t2,:),'--',h,rho(t2,:),'*',h,Yh(:,t2),'r-',h,rhot2,':',hxt2,r,':')
+    legend('Ideellt profil','Simulert profil','Estimert profil','Estimerte tilstander')
+    title('Estimering av virkelige profildata')
+    ylabel('Tetthet rho')
+    xlabel('Nivå målepunkt [h]')
+else % Tilstandsplot for estimert profil
+    figure(1)
+    plot(t,XhFit(1,:),'-',t,XhEKF(1,:),'--',t,XhMHEQP(1,:),':');
+    title('Estimert Tetthet av gass')
+    ylabel('Tetthet [kg/m^3]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    figure(2)
+    plot(t,Xh(2,:),'-',t,XhEKF(2,:),'--',t,XhMHEQP(2,:),':');
+    title('Estimert Tetthet av olje')
+    ylabel('Tetthet [kg/m^3]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    figure(3)
+    plot(t,Xh(3,:),'-',t,XhEKF(3,:),'--',t,XhMHEQP(3,:),':');
+    title('Estimert Tetthet av vann')
+    ylabel('Tetthet [kg/m^3]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    figure(4)
+    plot(t,Xh(4,:),'-',t,XhEKF(4,:),'--',t,XhMHEQP(4,:),':');
+    title('Estimert Nivå hx1')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    figure(5)
+    plot(t,Xh(5,:),'-',t,XhEKF(5,:),'--',t,XhMHEQP(5,:),':');
+    title('Estimert Nivå hx2')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    figure(6)
+    plot(t,Xh(6,:),'-',t,XhEKF(6,:),'--',t,XhMHEQP(6,:),':');
+    title('Estimert Nivå hx3')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    figure(7)
+    plot(t,Xh(7,:),'-',t,XhEKF(7,:),'--',t,XhMHEQP(7,:),':');
+    title('Estimert Nivå hx4')
+    ylabel('Nivå målepunkt [h]')
+    xlabel('Tid [hr]')
+    legend('LSQ','EKF','MHE')
+    % Profilplot for to utvalgte tidspunkt
+    figure(8)
+    plot(h,rho(t1,:),'*',h,Yh(:,t1),'r-',h,rhot1,':',hxt1,r,':')
+    legend('Virkelig profil','Estimert profil','Estimerte tilstander')
+    title('Estimering av profil')
+    ylabel('Tetthet rho')
+    xlabel('Nivå målepunkt [h]')
+    figure(9)
+    plot(h,rho(t2,:),'*',h,Yh(:,t2),'r-',h,rhot2,':',hxt2,r,':')
+    legend('Virkelige profil','Estimerte profil','Estimerte tilstander')
+    title('Estimering av virkelige profil')
+    ylabel('Tetthet rho')
+    xlabel('Nivå målepunkt [h]')
+end
+% RMSEP for hele tidsserien
+figure(10)
+plot(t,RMSEP);
+if sim == 1
+title('Feil mellom esimert og simulert ideelle profildata')
+else
+  title('Feil mellom esimert og virkelige profildata')
+end
+xlabel('Tid [hr]');
+ylabel('RMESP');
+% Beregningtid for optimeringsalgoritme for hele tidsserien
+figure(11)
+plot(1:size(rho,1),cal);
+title('Kalkuleringstid for optimeringsalgoritme')
+xlabel('Tidssample')
+ylabel('Kalkuleringstid [s]')

@@ -1,0 +1,146 @@
+function [xh,xb,rhob,K,Sx] = SRCDKF(g,xh,rho,wm,vm,Sx,Sw,Sv,W1,W2,dt,h)
+
+% SRCDKF.m: Square Root Central Difference Kalman Filter, funksjon som beregner estimater 
+% av ikke målbare tilstander.
+% 
+% Basert på en ulineær modell av formen
+%   x(k+1) = x(k) + w(k)
+%   rho(k) = g(x(k),h)
+%
+% Fuksjonsrutine
+%
+%   [xh,xb,rhob,K,Pb,Ph] = CDKF(g,xh,rho,wm,vm,Ph,Sw,Sv,W1,W2,dt,h)
+%
+% Andre funksjoner som kreves internt
+%
+%   vectorrep.m - Repetering av vektore for å danne matriser
+%
+% Innganger:
+% 
+%   g - Målefunksjon, rho = g(x,h)
+%   xh - initiellt aposteriori estimat av tilstander
+%   rho - Tetthetsmålinger
+%   wm - Middelverdi av prosessforstyrrelse
+%   vm - Midderlverdi av målestøy
+%   Sx - Cholesky faktor av estimatfeil kovariansmatrise
+%   Sw - Cholesky faktor av prosessforstyrrelse kovariansmatrise
+%   Sv - Cholesky faktor av målestøy kovariansmatrise
+%   W1 - sigma-punkt vekter sett 1
+%   W2 - sigma-punkt vekter sett 2
+%   dt - SRCDKF skaleringsfaktor / differens step lengde
+%   h - Vektor med nivåpunkter, h = [1,2,...]
+%
+% Utganger:
+% 
+%   xh - aposteriori estimat av tilstandene
+%   xb - apriori estimat av tilstandene
+%   rhob - aprioris estimat av tetthetsmålingene
+%   K - Kalmanfilterforsterkning
+%   Sx - Cholesky faktor av estimeringsfeil kovariansmatrise
+% 
+% Sigmapunkt vekter og skalering forslag:
+%   Central difference parametere
+%   dt=sqrt(3);
+% 
+%   % Beregning av vekter
+%   hh = dt^2;
+%   W1 = [(hh - nx - nw)/hh, 1/(2*hh);1/(2*h), sqrt(hh-1)/(2*hh)]; % sigma-punkt vekter sett 1
+%   W2 = W1;
+%   W2(1,1) = (hh - nx - nv)/hh;                        % sigma-punkt vekter sett 2
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] Henning Winsnes, "Estimering av nivå i tre-faseseparator med
+%       porfilmåler", Masters Thesis, Høgskulen i Telemark, 2007.
+
+% Dimensjoner
+nx = length(xh);
+ny = length(rho);
+nw = length(wm);
+nv = length(vm);
+nsp1 = 2*(nx+nw) + 1;             % number of sigma punkter (første sett)
+nsp2 = 2*(nx+nv) + 1;             % number of sigma punkter (andre sett)
+
+% Hjelpestørrelser
+X_ = zeros(nx,nsp1);
+Y_ = zeros(ny,nsp2);
+Zeros_nx_X_nw = zeros(nx,nw);
+Zeros_nw_X_nx = zeros(nw,nx);
+Zeros_nx_X_nv = zeros(nx,nv);
+Zeros_nv_X_nx = zeros(nv,nx);
+
+%% Kalmanfilter algoritme:
+
+% Beregning av 2*L+1 sigma vektore
+Z   = vectorrep([xh; wm],nsp1);
+Sz  = [Sx Zeros_nx_X_nw; Zeros_nw_X_nx Sw];
+hSz = dt*Sz;
+hSzM = [hSz -hSz];
+Z(:,2:nsp1) = Z(:,2:nsp1) + hSzM;
+
+% Kjører sigma punktene gjennom den ulineære prosessmodellen
+for j = 1:nsp1
+    X_(:,j) = Z(1:nx,j) + Z(nx+1:nx+nw,j);
+end
+
+% Beregner apriori tilstandsestimat
+xb = W1(1,1)*X_(:,1) + W1(1,2)*sum(X_(:,2:nsp1),2);
+
+% Hjelpematriser
+A = W1(2,1) * ( X_(:,2:nx+nw+1) - X_(:,nx+nw+2:nsp1) ) ;
+B = W1(2,2) * ( X_(:,2:nx+nw+1) + X_(:,nx+nw+2:nsp1) - vectorrep(2*X_(:,1),nx+nw));
+
+% QR dekomposisjon
+[temp,Sx_] = qr([A B]',0);
+Sx_= Sx_';
+
+% Sigmapunkt sett to
+Z = vectorrep([xb; vm],nsp2);
+Sz = [Sx_ Zeros_nx_X_nv; Zeros_nv_X_nx Sv];
+hSz = h*Sz;
+hSzM = [hSz -hSz];
+Z(:,2:nsp2) = Z(:,2:nsp2) + hSzM;
+
+% Kjører sigma punktene igjennom en mulig ulineær måleligning
+for j = 1:nsp2
+    Y_(:,j) = feval(g,Z(1:nx,j),h) + Z(nx+1:nx+nv,j);  % Updating sigma points with meashurement equations
+end
+
+% Hjelpematriser
+C = W2(2,1) * ( Y_(:,2:nx+nv+1) - Y_(:,nx+nv+2:nsp2) );
+D = W2(2,2) * ( Y_(:,2:nx+nv+1) + Y_(:,nx+nv+2:nsp2) - vectorrep(2*Y_(:,1),nx+nv));
+
+% Berenger apriori estimat av målinger, yb
+rhob = W2(1,1)*Y_(:,1) + W2(1,2)*sum(Y_(:,2:nsp2),2);
+
+% QR decoposition
+[temp,Sy] = qr([C D]',0);
+Sy = Sy';
+
+% Covariance
+Syx1 = C(:,1:nx);
+Syw1 = C(:,nx+1:end); % For bruk av alternativ metode
+
+% Kovarians mellom tilstand og måling
+Pxy = Sx_*Syx1';
+
+% Kalmanfilterforsterkning
+K = (Pxy / Sy') / Sy;
+
+% Aposteriori estimat
+xh = xb + K*(rho-rhob);
+
+% % Cholesky nedatering
+% U = K*Sy;  % Kovarians. Ekvivalent med:  Px = Px_ - KG*Py*KG';
+% for j=1:ny
+%     Sx_ = cholupdate(Sx_,U(:,j),'-');
+% end
+% Sx = Sx_';
+
+%% Alternativ metode (Mer stabil enn å bruke Cholesky neddatering)
+[temp,Sx] = qr([Sx_-K*Syx1 K*Syw1 K*D]',0);
+Sx=Sx';
+

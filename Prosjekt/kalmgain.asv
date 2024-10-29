@@ -1,0 +1,77 @@
+function [K,Kt,P,itc] = kalmgain(A,C,D,Rw,Rv,Rwv,Tol,maxit)
+
+% kalmgain.m: Funksjon som beregner stasjonær kalmanfilterforsterkning for
+% både innovasjon og apriori/aposteriori formulering av kalmanfilteret
+% 
+% Basert på en modell av formen
+%   x(k+1) = A
+% 
+% Fuksjonsrutine
+%
+%   [K,Kt,P,itc] = kalmgain(A,C,D,Rw,Rv,Rwv,Tol,maxit)
+% 
+% Innganger:
+%   A,C,D - Modellmatriser
+%   x0 - initialestimat for tidsserien
+%   Y - Matrise med tidsserie av måledata, slik at
+%   Y=[rho(k);rho(k-1);...;rho(k-N+1)]
+%   dt - tidsskritt mellom målinger
+%   tfin - Sluttid for målinger
+%
+% Utganger:
+%   Xh - Matrise med apriori estimater
+%   Xb - Matrise med aposteriori estimater
+%   Yb - Matrise med målinger
+%   t - Tidsvektor
+% 
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] Henning Winsnes, "Estimering av nivå i tre-faseseparator med
+%       porfilmåler", Masters Thesis, Høgskulen i Telemark, 2007.
+
+
+% Dimensjoner på støyvektore
+[nw,nw] = size(Rw); [nv,nv] = size(Rv);
+
+% Setter default verdier hvis innganger mangler
+ % Maksimum antall interasjoner
+if nargin < 8
+    maxit=1000;
+end
+% Tolerance for norm(P(i)-P(i-1)).
+if nargin < 7
+    Tol=1e-8;
+end
+% Kovarians mellom w og v, Rwv = E(wv')
+if nargin < 6
+    Rwv = zeros(nw,nv); 
+end
+
+% Initiell kovarians matrise.
+P = C*Rw*C';
+
+% Initierer løkka
+Pold=P*0;
+% Itererer til konvergens eller maks antall iterasjoner er nådd
+for i = 1:maxit;
+    K=(A*P*D'+Rwv)*pinv(D*P*D'+Rv);
+    AKD=A-K*D;
+    P=AKD*P*AKD'+Rw-Rwv*K'-K*Rwv'+K*Rv*K';
+    if norm(P-Pold) <= Tol % Sjekker for konvergens
+        break
+    end
+    if i == maxit
+        disp('Ingen konvergens, øk tol eller maxit');
+    end
+    Pold=P;
+end
+% Lagrer antall iterasjoner
+itc = i;
+% Forsterkning for innovasjonsform av KF
+Kt = (A*P*D'+Rwv)*pinv(D*P*D'+Rv);
+% Forsterkning for apriori/aposteriori av KF
+K = pinv(Kt'*A)*Kt'*Kt;
+

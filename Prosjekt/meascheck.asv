@@ -1,0 +1,33 @@
+function y = meascheck(y,x,xL,xH)
+
+% meascheck.m: funksjon som sjekker profil mot tilstander for å hindre at
+% feilmåinger ødlegger estimatet
+
+
+% Sjekker og korrigerer tetthetsmålinger slik at beskrankningene 
+% xL <= x <= xH overholdes
+for i = 1:length(y)
+    % Nedre grenser
+    if y(1:x(5)) < xL(1)
+        y(i) = xL(1);   % Gass og skum fase
+    end
+    if y(x(5):x(6)) < xL(2)
+        y(i) = xL(2);
+    end
+    if y(x(6):end) < xL(3)
+        y(i) = xL(3);
+    end
+    % Øvre grenser
+    if y(1:x(4)) > xH(1)
+        y(i) = xL(1);
+    end
+    if y(x(4):x(5)) > xH(2)
+        y(i) = xL(1);
+    end
+    if y(x(5):x(6)) > xH(2)
+        y(i) = xL(2);
+    end
+    if y(x(6):end) > xL(3)
+        y(i) = xL(3);
+    end
+end

@@ -1,0 +1,60 @@
+function [Xh,Xb,Yb,Kk,Phat,Pbar,t] = KF2estim(g,x0,Y,dt,tfin)
+
+% Simulasjonsparametere
+t = 1:dt:tfin;
+nSim = length(t);
+nx = length(x0);
+ny = size(Y,2);
+h = 1:ny;
+h = h';
+% Støy
+wm = zeros(nx,1);
+
+Rw = 1e-5*eye(nx); % Prosesstøy korrelasjon
+Rv = 1*eye(ny); % Antar ingen korrelasjon mellom målinge
+% Stasjonære punkter
+xs = x0;
+% Lineærisert modell
+Ac = jacobi_central(f,1,sqrt(eps),xs,wm);
+A = expm(Ac*dt);
+C = jacobi_central(f,2,sqrt(eps),xs,wm);
+D = jacobi_central(g,1,sqrt(eps),xs,h);
+% Kalmanfilterforsterkning
+[K,Kt,Pb] = kalmgain(A,C,D,Rw,Rv);
+Ph = Pb;
+% Lagringsplass
+Xb = zeros(nx,nSim);
+Xh = Xb;
+Yb = zeros(ny,nSim);
+Kk = zeros(nx,ny*nSim);
+Pbar = zeros(nx,nx*nSim);
+Phat = Pbar;
+% Estimeringsløkke
+xb = x0;
+% Beskrankninger
+xL = [0,600,950,5,6,40,41];
+xH = [50,900,1200,40,41,100,101];
+for k = 1:nSim
+    p = k/nSim*100;
+    disp(['Prosent ferdig av KF2 : ',num2str(p)]);
+    % Henter målinger
+    y = Y(k,:)';
+    
+    % Lagring
+    Xb(:,k) = xb';                  % xb(k|k-1)
+    Pbar(:,nx*k-nx+1:nx*k) = Pb;    % Pb(k|k-1)
+    
+    xb = physcheck(xb,xL,xH);
+    % Kalmanfilter
+    [xh,xb,yb] = KF2(g,xb,h,y,K,dt);
+       
+    % Lagring
+    Xh(:,k) = xh';                  % xh(k|k)
+    Yb(:,k) = yb';                  % yb(k|k)
+    Kk(:,ny*k-ny+1:ny*k) = K;
+    Phat(:,nx*k-nx+1:nx*k) = Ph;    % Ph(k|k)
+    
+    % Plotting
+    figure(1)
+    plot(h,y,'*',h,yb);
+end

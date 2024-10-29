@@ -1,0 +1,75 @@
+function [xh,itc] = gaussnewton(fun,x0,h,rho,tol,maxit,xL,xH)
+
+% gaussnewton.m: Funksjon som forsøker å løse et minste kvadraters problem:
+%
+%  x = arg min{E(x)} = arg min{e(x)*e(x)'} = arg min{sum(g(x,h)-rho).^2}
+%       x
+% 
+%  Basert på følgende iterative algoritme (Gauss Newton):
+% 
+%   x(k+1) = x(k) - (Je'*Je)\Je'*E(x); der Jg betegner jacobimatrisen til
+%   e(x).  
+%   
+% Fuksjonsrutine:
+%
+%   [x,itc] = gaussnewton(fun,x0,h,y,tol,maxit)
+%
+% Andre funksjoner som kreves internt
+%
+% Innganger:
+%
+%   fun - funksjon som skal beskrive data
+%   x0 - Initiell gjetning på parametre
+%   h - Inngangsdata for funksjonen 
+%   rho - utgangstata som skal tipasses
+%   tol - toleranse for endring før konvergens godtas
+%   maxit - maksimalt antall iterasjoner før konvergens godtas
+%
+% Utganger:
+%
+%   x - Parametervektor som tilpasser f(x,h) til rho
+%   itc - iterasjoner før konvergens.
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+%
+% Referanser:
+%   [1] Henning Winsnes, "Estimering av nivå i tre-faseseparator med
+%       porfilmåler", Masters Thesis, Høgskulen i Telemark, 2007.
+
+% Sjekker innganger
+if nargin < 6
+    tol = sqrt(eps);
+end
+if nargin < 7
+    maxit = 1000;
+end
+
+% Initiering av loop
+itc = 1;
+xi = x0;
+
+% Gauss newton Iterasjon
+while itc <= maxit 
+    % Hindrer at hx1 >= hx2 slik at J = NaN og estimeringe kræsjer.
+    xh = physcheck(xh,xL,xH);
+    % Nummerisk beregning av jacobimatrisen til g(x,h)
+    Je = jacobi_central_funfun(efun,fun,1,sqrt(eps),xi,h,rho)
+    Je = jacobi_central(efun,1,sqrt(eps),xi,h,rho);
+    % Feil i estimat
+    ef = efun(fun,xi,h,rho);
+    % Kvadratisk kriterie
+    Ef = ef*ef';
+    % Justering av tilstand
+    r = -(Je'*Je)\Je'*Ef;
+    % Sjekker om maks antall iterasjoner er nådd
+    if norm(r) > tol || itc >= maxit
+        disp('Ingen konvergens, øk tol eller maxit');
+        break;
+    end
+    % Oppdater tilstandsestimat i retningen r.
+    xi = xi + r;
+    % Antall iterasjoner for før konvergens
+    itc = itc+1;
+end
