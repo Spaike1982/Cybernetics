@@ -1,0 +1,92 @@
+function [varargout,t] = profilestim(statefun,measfun,x0,Y,dt,varargin)
+
+% Sjekk antall innganger
+nop = length(varargin);
+nia = nargin-1+nop;
+if nia < 5 + nop
+    error('Ikke nok inngangsargumenter, se help/doc profilestim! ');
+end
+
+for k=1:nop
+
+    switch varargin{k}
+
+        case 'curveestim'
+
+            [Xh,Xb,Yb,t] = curveestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = [Xh,Xb,Yb];
+
+
+        case 'curveestim2'
+
+            [Xh,Xb,Yb,t] = curveestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+
+
+        case 'KF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = KFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+
+
+        case 'KF2'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = KF2estim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+
+
+        case 'EKF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = EKFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+
+
+        case 'UKF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = UKFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+            
+        case 'CDKF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = CDKFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+            
+        case 'SRUKF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = SRUKFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+            
+        case 'SRCDKF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = SRCDKFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+            
+        case 'PF'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = PFestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+        
+        case 'MHE'
+
+            [Xh,Xb,Yb,Kk,Phat,Pbar,t] = MHEestim(statefun,measfun,x0,Y,dt,tfin);
+            %%%--------------------------------------------------------
+            varargout{k} = Xh;
+        
+        otherwise
+
+            error('Ugyldig fuksjonsargument, se help linearize_peturb');
+    
+    end
+
+end
+
