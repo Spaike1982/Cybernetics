@@ -1,0 +1,146 @@
+function [xh,xb,yb,K,Sx] = SRCDKF(xh,u,y,wm,vm,Sx,Sw,Sv,W1,W2,h,dt)
+
+% SRCDKF.m: Square Root Central Difference Kalman Filter, 
+% funksjon som beregner estimater av ikke målbare tilstander. 
+% 
+% Basistruktur for kalmanfilterestimator er:
+%
+%   yb = g(xb,u,v)
+%   K = Fuksjon av sigmapunkter,skaleringsfaktor og vekter
+%   xh = xb + K*(y-yb)
+%   xb = f(xh,u,w)
+%
+% Fuksjonsrutine
+% 
+%   [xh,xb,yb,K,Sx] = SRCDKF(xh,u,y,wm,vm,Sx,Sw,Sv,W1,W2,h,dt)
+%
+% Andre funksjoner som kreves internt
+%
+%   f.m - Tilstandsfunksjon
+%   g.m - Målelining
+%   vectorrep.m - Kopiering av kolonner
+%
+% Innganger:
+% 
+%   xh - Initiellt aposterioriestimat av tilstandene
+%   u - Pådrag
+%   y - Målinger
+%   wm - Middelverdi av prosessforstyrrelse
+%   vm - Midderlverdi av målestøy
+%   Sx - Cholesky faktor av Initiellt aposteriori tiltandskovarians matrise
+%   Sw - Cholesky faktor av prosessforstyrrelse kovariansmatrise
+%   Sv - Cholesky faktor av målestøy kovariansmatrise
+%   W1 - sigma-punkt vekter sett 1
+%   W2 - sigma-punkt vekter sett 2
+%   h - CDKF skaleringsfaktor / differens step lengde
+%   dt - sampletid slik at dt = k+1 - k
+%
+% Utganger:
+% 
+%   xh - aposteriori estimat av tilstandene
+%   xb - apriori estimat av tilstandene
+%   yb - aprioris estimat av målingene
+%   K - Kalmanfilterforsterkning
+%   Sx - Cholesky faktor av aposteriori tilstandskovarians matrise
+%
+% Sigmapunkt vekter og skalering forslag:
+%   Central difference parametere
+%   h=sqrt(3);
+% 
+%   % Beregning av vekter
+%   hh = h^2;
+%   W1 = [(hh - nx - nw)/hh, 1/(2*hh);1/(2*h), sqrt(hh-1)/(2*hh)]; % sigma-punkt vekter sett 1
+%   W2 = W1;
+%   W2(1,1) = (hh - nx - nv)/hh;                        % sigma-punkt
+%   vekter sett 2
+
+% Dimensjoner
+nx = length(xh);
+ny = length(y);
+nw = length(wm);
+nv = length(vm);
+nsp1 = 2*(nx+nw) + 1;             % number of sigma punkter (første sett)
+nsp2 = 2*(nx+nv) + 1;             % number of sigma punkter (andre sett)
+
+% Lager opp plass for lagrning
+
+X_ = zeros(nx,nsp1);
+Y_ = zeros(ny,nsp2);
+Zeros_nx_X_nw = zeros(nx,nw);
+Zeros_nw_X_nx = zeros(nw,nx);
+Zeros_nx_X_nv = zeros(nx,nv);
+Zeros_nv_X_nx = zeros(nv,nx);
+
+%% Kalmanfilter algoritme:
+
+% Beregning av 2*L+1 sigma vektore
+Z   = vectorrep([xh; wm],nsp1);
+Sz  = [Sx Zeros_nx_X_nw; Zeros_nw_X_nx Sw];
+hSz = h*Sz;
+hSzM = [hSz -hSz];
+Z(:,2:nsp1) = Z(:,2:nsp1) + hSzM;
+
+% Kjører sigma punktene gjennom den ulineære prosessmodellen
+for j = 1:nsp1
+    X_(:,j)=Z(1:nx,j)+dt*f(Z(1:nx,j),u,Z(nx+1:nx+nw,j));
+end
+
+% Beregner apriori tilstandsestimat
+xb = W1(1,1)*X_(:,1) + W1(1,2)*sum(X_(:,2:nsp1),2);
+
+% Hjelpematriser
+A = W1(2,1) * ( X_(:,2:nx+nw+1) - X_(:,nx+nw+2:nsp1) ) ;
+B = W1(2,2) * ( X_(:,2:nx+nw+1) + X_(:,nx+nw+2:nsp1) - vectorrep(2*X_(:,1),nx+nw));
+
+% QR dekomposisjon
+[temp,Sx_] = qr([A B]',0);
+Sx_= Sx_';
+
+% Sigmapunkt sett to
+Z = vectorrep([xb; vm],nsp2);
+Sz = [Sx_ Zeros_nx_X_nv; Zeros_nv_X_nx Sv];
+hSz = h*Sz;
+hSzM = [hSz -hSz];
+Z(:,2:nsp2) = Z(:,2:nsp2) + hSzM;
+
+% Kjører sigma punktene igjennom en mulig ulineær måleligning
+for j = 1:nsp2
+    Y_(:,j) = g(Z(1:nx,j),u,Z(nx+1:nx+nv,j));  % Updating sigma points with meashurement equations
+end
+
+% Hjelpematriser
+C = W2(2,1) * ( Y_(:,2:nx+nv+1) - Y_(:,nx+nv+2:nsp2) );
+D = W2(2,2) * ( Y_(:,2:nx+nv+1) + Y_(:,nx+nv+2:nsp2) - vectorrep(2*Y_(:,1),nx+nv));
+
+% Berenger apriori estimat av målinger, yb
+yb = W2(1,1)*Y_(:,1) + W2(1,2)*sum(Y_(:,2:nsp2),2);
+
+% QR decoposition
+[temp,Sy] = qr([C D]',0);
+Sy = Sy';
+
+% Covariance
+Syx1 = C(:,1:nx);
+%Syw1 = C(:,nx+1:end); % For bruk av alternativ metode
+
+% Kovarians mellom tilstand og måling
+Pxy = Sx_*Syx1';
+
+% Kalmanfilterforsterkning
+K = (Pxy / Sy') / Sy;
+
+% Aposteriori estimat
+xh = xb + K*(y-yb);
+
+% Cholesky nedatering
+U = K*Sy;  % Kovarians. Ekvivalent med:  Px = Px_ - KG*Py*KG';
+for j=1:ny
+    Sx_ = cholupdate(Sx_,U(:,j),'-');
+end
+Sx = Sx_';
+
+%% Alternativ metode
+%     [temp,Sx] = qr([Sx_-Kk*Syx1 Kk*Syw1 Kk*D]',0);
+%     Sx=Sx';
+%
+%     Px = Sx*Sx';

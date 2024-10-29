@@ -1,0 +1,55 @@
+function [xs,ys,i] = stationary(x0,us,wm,vm,dt)
+
+% stationary.m: Funksjon som finner stasjonær tilstand ved et gitt pådrag
+% og forstyrrelse, slik at x(k+1) = x(k). Kan f.eks brukes til å finne
+% arbeidspunkt i forbindelse med lineærisering. Basert op
+%
+% Fuksjonsrutine
+%
+%   [xs,ys,i] = stationary(x0,us,wm,vm,tstat,dt)
+%
+% Andre funksjoner som kreves internt
+%
+%   f.m - Tilstandsfunksjon
+%   g.m - Målelining
+%
+% Innganger:
+%
+%   x0 - Initialtilstand
+%   us - Stasjonært pådrag
+%   wm - Middelverdi for prosessforstyrrelse
+%   vm - Middelverdi for målestøy
+%   dt - Tidskritt slik at dt = k+1 - k
+%
+% Utganger:
+%
+%   xs - Stasjonær tilstand
+%   ys - Stasjonær måling
+%   i - Antall tidskritt før steady state nåes
+%
+% Merknad:
+%
+% Hvis mulig
+%
+% Sluttkommentar
+%   Laget av Henning Winsnes i forbindelse med masteroppgaven ved Høgskulen i
+%   Telemark 2007.
+
+nx = length(x0);
+N = 10; % Lengde på horisont for beregning av gjennomsnitt
+xN = zeros(nx,N); % Horisont med gamle tilstander
+x = x0; % initiering av løkka
+xm = x0 + 1e-8; % For å få løkka igang
+i = 1; % Tellevariabel
+
+%%%---------- Erstatt denne seksjonen med analytisk uttrykk--------
+while xm ~= x
+    x = x + dt*f(x,us,wm);
+    xN = [xN(:,2:N),x];
+    xm = mean(xN,2);
+    i = i + 1;
+end
+%%%--------------------------------------------------------
+
+xs=x;               % samler i en vektor
+ys=g(xs,us,vm);     % Måleligning arbeidspunkt
