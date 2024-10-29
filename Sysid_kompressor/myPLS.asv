@@ -1,0 +1,153 @@
+function [T,Ppls,Qt,W,E,Bpls,b0pls,RMSECpls,RMSEPpls,xcal_s,ycal_s,pk]=myPLS(xcal,ycal,xval,yval,A,g)
+% Funksjon som danner en PLS regressjonsmodell.
+% Valideringsmetode er testsettvalidering, siden dette er den eneste
+% realistiske valideringen
+%
+% Innput:   xcal - Matrise med inngangsdata (kalibreing), kolonner er variable og rekker er sampler
+%           xval - Matrise med inngangsdata (validering), kolonner er variable og
+%                   rekker er sampler
+%           ycal - Matrise med utgangsdata (kalibrering), kolonner er variable og
+%                   rekker er sampler
+%           yval - Matrise med utgangsdata (validering), kolonner er variable og
+%                   rekker er sampler
+%           A - Antall PLS komponenter som skal taes med i modellen, default er auto.
+%           g - g ulik 1 gir ikke autoskalering, default er autoskalering
+%
+% Output:   T - Scorematrise
+%           Ppls - X loadingmatrise
+%           Qt - Y scorematrise
+%           W - pls komponeter (loading weights)
+%           E - Residuale
+%           Bpls- Regressjonskoeffisienter
+%           B0pls - Regressjonskoeffisienter (skal ikke mulipliseres med
+%           variable (y_hat=Bpcr*x_new+b0pcr)
+%           RMSEPpls - Gjennomsnittelig modellfeil med testsett validering
+%           RMSECpls - Gjennomsnittelig modellfeil uten validering
+%           xcal_s - Aktuelle inngangsdata brukt i selve pls dekomposisjoen
+%           ycal_s - Aktuelle utgangsdata brukt i selve pls dekomposisjoen
+%           pk - Antall prinsippal komponenter benyttet
+
+if nargin == 5; g = 1; end % Setter defalut verdier
+if nargin == 4; g = 1; A = -1; end % Setter defalut verdier
+
+ncal=length(ycal);
+nval=length(yval);
+nvar=size(xcal,2);
+
+if g==1; % Autoskalering
+    ycal_s=ycal-ones(ncal,1)*sum(ycal)/ncal;
+    xcal_s=xcal-ones(ncal,1)*sum(xcal)/ncal;
+    yval_s=yval-ones(nval,1)*sum(yval)/nval;
+    xval_s=xval-ones(nval,1)*sum(xval)/nval;
+    ycal_s=ycal_s/sqrt(sum(ycal_s.^2)/(ncal-1));
+    for j=1:size(xcal_s,2)
+        xcal_s(:,j)=xcal_s(:,j)/sqrt(sum(xcal_s(:,j).^2)/(ncal-1));
+    end
+    yval_s=yval_s/sqrt(sum(yval_s.^2)/(nval-1));
+    for j=1:size(xval_s,2)
+        xval_s(:,j)=xval_s(:,j)/sqrt(sum(xval_s(:,j).^2)/(nval-1));
+    end
+else
+    xcal_s=xcal; xval_s=xval; ycal_s=ycal; yval_s=yval;
+end
+
+X=xcal_s;
+T = zeros(nsamp,nvar);
+W = T;
+Ppls = T;
+Qt = T;
+if A == -1  % Atomatisk valg av antall komponenter i modellen
+    Ta = zeros(ncal,1/2*nvar*(nvar+1)); % Lager opp plass
+    Pplsa = zeros(nvar,1/2*nvar*(nvar+1));
+    Wa = zeros(nvar,1/2*nvar*(nvar+1));
+    Qta = zeros(1,1/2*nvar*(nvar+1));
+    Ea = zeros(ncal,nvar^2);
+    Bplsa = zeros(1,nvar^2);
+    b0plsa = zeros(1,nvar);
+    RMSEPplsa = zeros(1,nvar);
+    for A = 1:nvar % pls dekomposisjon for alle komponenter
+        for a =1:A
+            c = 1/sqrt(ycal_s'*X*X'*ycal_s);
+            wa = X'*ycal_s*c;
+            ta = X*wa;
+            pa = inv(ta'*ta)*X'*ta;
+            qa = inv(ta'*ta)*ta'*ycal_s;
+            X = X-ta*pa';
+            T(:,a) = ta; % X Score matrise
+            W(:,a) = wa; % Loading weights matrise
+            Ppls(:,a) = pa; % X Loadingmatrise
+            Qt(:,a) = qa; % Y score matrise
+        end
+        E=X;
+        b_s=W*inv(W'*xcal_s'*xcal_s*W)*W'*xcal_s'*ycal_s;
+        if g == 1 % uskalererer regressjonsvektor
+            b0pls= (mean(ycal)-((mean(xcal).*(ones(1,nvar)*std(ycal)./std(xcal)))*b_s));
+            Bpls = (diag(ones(1,nvar)*std(ycal)./std(xcal)))*b_s;
+        else
+            b0pls=0;
+            Bpls=b_s;
+        end
+        RMSECpls=sqrt(sum((ycal-(xcal*Bpls+b0pls)).^2)/ncal); % Validering
+        RMSEPpls=sqrt(sum((yval-(xval*Bpls+b0pls)).^2)/nval); % Validering
+
+        Ta(:,1/2*A*(A-1)+1:1/2*A*(A+1)) = T; % Lagrer scores
+        Pplsa(:,1/2*A*(A-1)+1:1/2*A*(A+1)) = Ppls; % Lagrer X loadings
+        Wa(:,1/2*A*(A-1)+1:1/2*A*(A+1)) = W; % Lagrer loading weight
+        Ea(:,nvar*(A-1)+1:nvar*A) = E; % Lagrer residuale
+        Qta(:,1/2*A*(A-1)+1:1/2*A*(A+1)) = Qt; % Lagrer Y scores
+        RMSEPplsa(A) = RMSEPpls; % Lagrer RMSEP
+        Bplsa(:,nvar*(A-1)+1:nvar*A) = Bpls; % Lagrer regressjonskoeff.
+        b0plsa(A)=b0pls; % Lagrer regressjonskosntant
+    end
+    for k=1:nvar % Finner hvilken modell som gir minimum RMSEP
+        RMSEPpls = RMSEPplsa(k);
+        if  RMSEPpls == min(RMSEPplsa)
+            break;
+        end
+    end
+    pk = k; % Antall pls komponenter brukt i modellen.
+    T = Ta(:,1/2*k*(k-1)+1:1/2*k*(k+1)); % Lagrer optimal modell
+    Ppls = Pplsa(:,1/2*k*(k-1)+1:1/2*k*(k+1)); % Lagrer optimal modell
+    W = Wa(:,1/2*k*(k-1)+1:1/2*k*(k+1)); % Lagrer optimal modell
+    E = Ea(:,nvar*(k-1)+1:nvar*k); % Lagrer optimal modell
+    Qt = Qta(:,1/2*k*(k-1)+1:1/2*k*(k+1)); % Lagrer optimal modell
+    Bpls = Bplsa(:,nvar*(k-1)+1:nvar*k)'; % Lagrer optimal modell
+    b0pls = b0plsa(k); % Lagrer optimal modell
+else % Manuellt valg av komponenter
+    pk = A;
+    for a =1:A
+        c = 1/sqrt(ycal_s'*X*X'*ycal_s);
+        wa = X'*ycal_s*c;
+        ta = X*wa;
+        pa = inv(ta'*ta)*X'*ta;
+        qa = inv(ta'*ta)*ta'*ycal_s;
+        X = X-ta*pa';
+        T(:,a) = ta; % X Score matrise
+        W(:,a) = wa; % Loading weights matrise
+        Ppls(:,a) = pa; % X Loadingmatrise
+        Qt(:,a) = qa; % Y score matrise
+    end
+    E=X;
+    b_s=W*inv(W'*xcal_s'*xcal_s*W)*W'*xcal_s'*ycal_s;
+    if g == 1 % uskalererer regressjonsvektor
+        b0pls= (mean(ycal)-((mean(xcal).*(ones(1,nvar)*std(ycal)./std(xcal)))*b_s));
+        Bpls = (diag(ones(1,nvar)*std(ycal)./std(xcal)))*b_s;
+    else
+        b0pls=0;
+        Bpls=b_s;
+    end
+    RMSECpls=sqrt(sum((ycal-(xcal*Bpls+b0pls)).^2)/ncal); % Validering
+    RMSEPpls=sqrt(sum((yval-(xval*Bpls+b0pls)).^2)/nval); % Testsettvalidering
+end
+
+% %% Alternativ (Ortogonal) PLSR (Raskere beregning)
+% e=ycal_s;
+% tic;
+% for a =1:A
+%     c = 1/sqrt(e'*xcal_s*xcal_s'*e);
+%     Wa(:,a) = xcal_s'*e*c;
+%     e = e-xcal_s*Wa*inv(Wa'*xcal_s'*xcal_s*Wa)*Wa'*xcal_s'*ycal_s;
+% end
+% toc;
+% b_salt=Wa*inv(Wa'*xcal_s'*xcal_s*Wa)*Wa'*xcal_s'*ycal_s;
+% disp(b_s); disp(b_salt);

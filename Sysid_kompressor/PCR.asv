@@ -1,0 +1,91 @@
+%% PCR modellering
+% Danner en PCR modell av data fra dokument
+% AO-0100-M-KV-005 side 2.4
+clear; clc;
+
+%% Tar inn data og deler opp i modelleringsdata og valideringsdata
+data=load('C:\Documents and Settings\Administrator\My Documents\Jobb\Erbus\Henning W\Troll A Precompression\data.txt');
+% Speed [rpm]
+v=data(:,1);
+% Inlet (suction) pressure [BarA]
+p_s=data(:,2);
+% Outlet (discharge) pressure [BarA]
+p_d=data(:,3);
+% Masflow [kg/hr]
+m_dot=data(:,4);
+% Volumeflow [m^3/min]
+V_dot=data(:,5);
+% Shaft power [kW]
+W_shaft=data(:,6);
+% Polytropic Head [kJ/kg]
+P_h=data(:,7);
+
+% Deler opp i inngangsdata x og utgangdata y
+xcal=[p_s,p_d,m_dot,V_dot,W_shaft,P_h]; 
+ycal=v;
+
+% Testsett
+xval=[p_s,p_d,m_dot,V_dot,W_shaft,P_h];
+yval=v;
+
+function [T,P,E,Bpcr,b0pcr,RMSEPpcr,RMSECpcr,X_pcr,Y_pcr,pk]=myPCR(xcal,ycal,xval,yval);
+
+%% Sjekker residuale
+% NB! Viktig å sjekke alle variable
+figure(1); plot([X_pcr(:,1),E(:,1)]);
+legend('p_s','Residuale for p_ s')
+title('Residuale mot data')
+figure(2); plot([X_pcr(:,2),E(:,2)]);
+legend('p_d','Residuale for p_ d')
+title('Residuale mot data')
+figure(3); plot([X_pcr(:,3),E(:,3)]);
+legend('m_dot','Residuale for m_ dot')
+title('Residuale mot data')
+figure(4); plot([X_pcr(:,4),E(:,4)]);
+legend('V_dot','Residuale for V_ dot')
+title('Residuale mot data')
+figure(5); plot([X_pcr(:,5),E(:,5)]);
+legend('W_shaft','Residuale for W_ shaft')
+title('Residuale mot data')
+figure(6); plot([X_pcr(:,6),E(:,6)]);
+legend('P_h','Residuale for P_ h')
+title('Residuale mot data')
+
+%% Plotter regresjonskoeffisienter
+figure(7); plot(Bpcr);
+title('Regressjonskoeffisienter')
+
+%% Plotter prediksjonsevne
+figure(8); plot([v,xval*Bpcr+b0pcr]);
+legend('Virkelig speed','Esimert speed'); ylabel('RPM'); title('Virkelig og beregnet speed');
+figure(9); plot(v,xval*Bpcr+b0pcr,'.',v,v);
+legend(['RMSEP = ',num2str(RMSEPpcr)],'target line'); xlabel('RPM'); ylabel('RPM'); title('v virkelig mot v beregna');
+
+%% Plotter scores og loadings for PCA analyse
+% PC1 mot PC2
+figure(10)
+plot(T(:,1),T(:,2),'o')
+xlabel('PC1'); ylabel('PC2')
+title('Scoreplot')
+figure(11)
+plot(P(:,1),P(:,2),'*')
+xlabel('PC1'); ylabel('PC2')
+title('Loadingplot')
+% PC1 mot PC3
+figure(12)
+plot(T(:,1),T(:,3),'o')
+xlabel('PC1'); ylabel('PC3')
+title('Scoreplot')
+figure(13)
+plot(P(:,1),P(:,3),'*')
+xlabel('PC1'); ylabel('PC3')
+title('Loadingplot')
+% PC2 mot PC3
+figure(14)
+plot(T(:,2),T(:,3),'o')
+xlabel('PC2'); ylabel('PC3')
+title('Scoreplot')
+figure(15)
+plot(P(:,2),P(:,3),'*')
+xlabel('PC2'); ylabel('PC3')
+title('Loadingplot')

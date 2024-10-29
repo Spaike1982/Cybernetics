@@ -1,0 +1,76 @@
+%% Prinsippal Component Analysis
+% Utfører en prinsippalkomponent analyse av data fra dokument
+% AO-0100-M-KV-005 side 2.4
+%
+% Dette skriptet er laget av Henning Winsnes i forindelse med sommerjobb
+% 2006.
+%
+% Revidert 12.02.2007: Laget rutine for automatisk plotting
+
+clear; clc;
+
+%% Tar inn data
+importfile('C:\Documents and Settings\Administrator\My Documents\Jobb\Erbus\Troll A Precompression\Matlab\data.mat')
+% Speed [rpm]
+v=data(:,1);
+% Inlet (suction) pressure [BarA]
+p_s=data(:,2);
+% Outlet (discharge) pressure [BarA]
+p_d=data(:,3);
+% Massflow [kg/hr]
+m_dot=data(:,4);
+% Volumeflow [m^3/min]
+V_dot=data(:,5);
+% Shaft power [kW]
+W_shaft=data(:,6);
+% Polytropic Head [kJ/kg]
+P_h=data(:,7);
+
+% Samler data i matrise
+X=[v,p_s,p_d,m_dot,V_dot,W_shaft,P_h];
+
+% Utfører PCA analysen.
+[T,P,E,X_pca,a]=myPCA(X);
+
+% Scoreplot
+
+figure(3)
+axis([min(P(:,1)), max(P(:,1)), min(P(:,2)), max(P(:,2))])
+text(P(:,1),P(:,2),variable);
+% Loadingplot
+variable = ['vv';'ps';'pd';'md';'Vd';'Ws';'Ph'];
+figure(4)
+axis([min(P(:,1)), max(P(:,1)), min(P(:,2)), max(P(:,2))])
+text(P(:,1),P(:,2),variable);
+
+
+
+% %% Plotter residuale mot virkelige data for å sjekke om valg av antall PC
+% %% var fornuftig
+% for i = 1:size(X,2)
+%     figure(i); plot([X_pca(:,i),E(:,i)]);
+%     legend('Variabel','Residuale')
+%     title(['Residuale mot data for variabel nr: ',num2str(i)])
+% end
+% 
+% %% Plotting av PC mot PC i score og loadingplot for dataanalyse,
+% % Loadings viser sammenhenger mellom variable, scores viser sammenhenger
+% % mellom datasampler
+% r = i+1;
+% for ii = 1:a
+%     for j = 1:a
+%         if ii ~= j && j > ii
+%             figure(r)
+%             subplot(211)
+%             plot(T(:,ii),T(:,j),'o')
+%             xlabel(['PC ',num2str(ii)]); ylabel(['PC ',num2str(j)])
+%             title('Scoreplot')
+%             subplot(212)
+%             plot(P(:,ii),P(:,j),'o')
+%             xlabel(['PC ',num2str(ii)]); ylabel(['PC ',num2str(j)])
+%             title('Loadingplot')
+%             r = r + 1;
+%         end
+%     end
+% end
+
